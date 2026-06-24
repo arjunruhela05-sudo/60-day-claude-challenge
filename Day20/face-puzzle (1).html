@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Face Puzzle — Snap, Scramble, Solve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #16141c;
+    --bg-soft: #1d1a25;
+    --panel: #221f2b;
+    --panel-border: #322d3d;
+    --ink: #f2efe9;
+    --ink-dim: #b4aebd;
+    --ink-faint: #756f81;
+    --amber: #e8a33d;
+    --amber-deep: #c4811f;
+    --violet: #8b7fd1;
+    --green: #4caf7d;
+    --red: #e2685a;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow-lift: 0 18px 40px rgba(0,0,0,0.45);
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{
+    margin:0; padding:0; width:100%; min-height:100%;
+    background: radial-gradient(120% 120% at 50% -10%, #211d2c 0%, var(--bg) 55%, #0f0d14 100%);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  body{
+    min-height: 100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 28px 16px 60px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  .wrap{ width:100%; max-width: 760px; }
+
+  /* ---------- Header ---------- */
+  header.top{
+    text-align:center;
+    margin-bottom: 26px;
+  }
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--amber);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .eyebrow::before, .eyebrow::after{
+    content:"";
+    height:1px; width: 28px;
+    background: linear-gradient(90deg, transparent, var(--panel-border));
+  }
+  .eyebrow::after{ background: linear-gradient(90deg, var(--panel-border), transparent); }
+  h1{
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(28px, 6vw, 40px);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  h1 span{ color: var(--amber); }
+  .sub{
+    color: var(--ink-dim);
+    font-size: 14.5px;
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  /* ---------- Stage (shared card shell) ---------- */
+  .stage{
+    background: linear-gradient(160deg, var(--panel) 0%, var(--bg-soft) 100%);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lift);
+    padding: 24px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+  .stage::before{
+    content:"";
+    position:absolute; inset:0;
+    background: radial-gradient(80% 60% at 50% 0%, rgba(232,163,61,0.06), transparent 70%);
+    pointer-events:none;
+  }
+  .panel-label{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .dot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--amber);
+    box-shadow: 0 0 0 3px rgba(232,163,61,0.18);
+  }
+  .dot.live{ background: var(--red); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ box-shadow: 0 0 0 3px rgba(226,104,90,0.25);} 50%{ box-shadow: 0 0 0 6px rgba(226,104,90,0.08);} }
+
+  /* ---------- Camera screen ---------- */
+  .camera-frame{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #0c0b10;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+  }
+  video{
+    width:100%; height:100%; object-fit:cover;
+    transform: scaleX(-1);
+    display:block;
+  }
+  .scan-line{
+    position:absolute; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+    top: 0;
+    opacity: 0.8;
+    animation: scan 2.6s linear infinite;
+    pointer-events:none;
+  }
+  @keyframes scan{ 0%{ top:0%; } 100%{ top:100%; } }
+
+  .corner-frame span{
+    position:absolute; width:26px; height:26px;
+    border: 2px solid var(--amber);
+    opacity:0.85;
+  }
+  .corner-frame span:nth-child(1){ top:10px; left:10px; border-right:none; border-bottom:none; }
+  .corner-frame span:nth-child(2){ top:10px; right:10px; border-left:none; border-bottom:none; }
+  .corner-frame span:nth-child(3){ bottom:10px; left:10px; border-right:none; border-top:none; }
+  .corner-frame span:nth-child(4){ bottom:10px; right:10px; border-left:none; border-top:none; }
+
+  .cam-placeholder, .cam-error{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:12px;
+    text-align:center;
+    padding: 20px;
+  }
+  .cam-placeholder svg, .cam-error svg{ opacity:0.55; }
+  .cam-error{ color: var(--ink-dim); }
+  .cam-error strong{ color: var(--red); font-family: var(--font-display); font-size:16px; }
+  .cam-error p{ max-width: 320px; font-size: 13.5px; line-height:1.55; margin:0; }
+
+  canvas#snapCanvas{ display:none; }
+
+  .controls-row{
+    display:flex; gap:12px; margin-top:18px; flex-wrap:wrap;
+    justify-content:center;
+  }
+
+  .or-divider{
+    display:flex; align-items:center; gap:12px;
+    margin: 16px 0 0;
+    color: var(--ink-faint);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-family: var(--font-mono);
+  }
+  .or-divider::before, .or-divider::after{
+    content:"";
+    flex:1; height:1px;
+    background: var(--panel-border);
+  }
+
+  /* ---------- Buttons ---------- */
+  button{
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 12px 22px;
+    display:inline-flex; align-items:center; gap:8px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease, opacity 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active{ transform: scale(0.97); }
+  button:focus-visible{ outline: 2px solid var(--amber); outline-offset: 3px; }
+  button:disabled{ opacity:0.4; cursor:not-allowed; transform:none; }
+
+  .btn-primary{
+    background: linear-gradient(180deg, var(--amber) 0%, var(--amber-deep) 100%);
+    color: #1b1306;
+    box-shadow: 0 8px 20px rgba(232,163,61,0.28);
+  }
+  .btn-primary:hover:not(:disabled){ box-shadow: 0 10px 24px rgba(232,163,61,0.4); }
+
+  .btn-secondary{
+    background: var(--bg-soft);
+    color: var(--ink);
+    border: 1px solid var(--panel-border);
+  }
+  .btn-secondary:hover:not(:disabled){ border-color: var(--violet); color:#fff; }
+
+  .btn-ghost{
+    background: transparent;
+    color: var(--ink-dim);
+    border: 1px solid transparent;
+  }
+  .btn-ghost:hover:not(:disabled){ color: var(--ink); }
+
+  .btn-sm{ padding: 9px 16px; font-size: 13px; }
+
+  /* ---------- Difficulty screen ---------- */
+  .snap-preview{
+    display:flex; gap: 22px; flex-wrap: wrap; align-items:center;
+  }
+  .snap-preview img{
+    width: 140px; height: 140px; object-fit:cover; border-radius: var(--radius-sm);
+    border: 1px solid var(--panel-border);
+    flex-shrink:0;
+  }
+  .diff-grid{
+    flex:1;
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    min-width: 240px;
+  }
+  .diff-card{
+    background: var(--bg-soft);
+    border: 1.5px solid var(--panel-border);
+    border-radius: var(--radius-sm);
+    padding: 14px 8px;
+    text-align:center;
+    cursor:pointer;
+    transition: border-color 0.2s, transform 0.15s, background 0.2s;
+  }
+  .diff-card:hover{ border-color: var(--violet); transform: translateY(-2px); }
+  .diff-card.selected{ border-color: var(--amber); background: rgba(232,163,61,0.08); }
+  .diff-card .n{
+    font-family: var(--font-display); font-weight:700; font-size: 22px; display:block;
+  }
+  .diff-card .lbl{ font-size: 11px; color: var(--ink-faint); text-transform:uppercase; letter-spacing:0.06em; }
+
+  /* ---------- Game HUD ---------- */
+  .hud{
+    display:flex; justify-content:space-between; align-items:center;
+    gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .hud-stat{
+    background: var(--bg-soft);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    text-align:center;
+    min-width: 92px;
+  }
+  .hud-stat .v{
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 19px;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+  .hud-stat .k{
+    font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.08em; margin-top:2px;
+  }
+  .hud-stat.timer .v{ color: var(--amber); }
+  .hud-stat.progress .v{ color: var(--green); }
+
+  /* ---------- Puzzle board ---------- */
+  .board-shell{
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    aspect-ratio: 1/1;
+    background: #0c0b10;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--panel-border);
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+  }
+  .cell-bg{
+    position:absolute;
+    background: rgba(255,255,255,0.025);
+    border: 1px dashed rgba(255,255,255,0.06);
+    box-sizing: border-box;
+  }
+  .tile{
+    position:absolute;
+    box-sizing:border-box;
+    background-size: cover;
+    cursor: grab;
+    border: 2px solid rgba(0,0,0,0.4);
+    border-radius: 3px;
+    transition: left 0.18s cubic-bezier(.2,.8,.2,1), top 0.18s cubic-bezier(.2,.8,.2,1), box-shadow 0.2s, border-color 0.2s;
+    will-change: left, top;
+    z-index: 1;
+  }
+  .tile.dragging{
+    cursor: grabbing;
+    z-index: 50;
+    border-color: var(--violet);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.55);
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .tile.correct{
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px rgba(76,175,125,0.25) inset;
+  }
+  .tile.correct::after{
+    content:"";
+  }
+  .tile.settle{
+    animation: settle 0.32s ease;
+  }
+  @keyframes settle{ 0%{ transform: scale(1.04); } 100%{ transform: scale(1); } }
+
+  /* ---------- Results overlay ---------- */
+  .overlay{
+    position: fixed; inset:0;
+    background: rgba(10,9,13,0.78);
+    backdrop-filter: blur(6px);
+    display:flex; align-items:center; justify-content:center;
+    z-index: 200;
+    padding: 20px;
+    animation: fadeIn 0.25s ease;
+  }
+  @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+  .result-card{
+    background: linear-gradient(160deg, var(--panel) 0%, var(--bg-soft) 100%);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    max-width: 420px;
+    width:100%;
+    text-align:center;
+    box-shadow: var(--shadow-lift);
+    animation: pop 0.3s cubic-bezier(.2,.9,.3,1.3);
+  }
+  @keyframes pop{ from{ transform: scale(0.92); opacity:0; } to{ transform: scale(1); opacity:1; } }
+  .result-card .badge{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 6px;
+  }
+  .result-card h2{
+    font-family: var(--font-display);
+    font-size: 26px;
+    margin: 0 0 18px;
+  }
+  .result-stats{
+    display:grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+    margin-bottom: 22px;
+  }
+  .result-stats div{
+    background: var(--bg-soft);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-sm);
+    padding: 12px 6px;
+  }
+  .result-stats .v{ font-family: var(--font-mono); font-weight:600; font-size: 17px; color: var(--amber); }
+  .result-stats .k{ font-size: 10px; color: var(--ink-faint); text-transform:uppercase; letter-spacing:0.06em; margin-top:3px; }
+
+  .new-best{
+    font-size: 12.5px;
+    color: var(--green);
+    margin: -10px 0 18px;
+    font-weight: 600;
+  }
+
+  .leaderboard{
+    text-align:left;
+    margin-top: 8px;
+    border-top: 1px solid var(--panel-border);
+    padding-top: 16px;
+  }
+  .leaderboard h3{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-faint);
+    margin: 0 0 10px;
+  }
+  .lb-row{
+    display:flex; align-items:center; gap:10px;
+    padding: 7px 0;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .lb-row:last-child{ border-bottom:none; }
+  .lb-rank{
+    font-family: var(--font-display); font-weight:700; color: var(--ink-faint);
+    width: 18px; flex-shrink:0;
+  }
+  .lb-row.this-run .lb-rank{ color: var(--amber); }
+  .lb-time{ font-family: var(--font-mono); font-weight:600; color:var(--ink); flex-shrink:0; }
+  .lb-meta{ color: var(--ink-faint); font-size: 11.5px; flex:1; text-align:right; }
+  .lb-empty{ color: var(--ink-faint); font-size: 13px; padding: 6px 0; }
+
+  .result-actions{ display:flex; gap:10px; margin-top: 22px; justify-content:center; flex-wrap:wrap; }
+
+  footer.foot{
+    margin-top: 30px;
+    color: var(--ink-faint);
+    font-size: 12px;
+    text-align:center;
+  }
+
+  .hidden{ display:none !important; }
+
+  @media (max-width: 480px){
+    .stage{ padding: 18px; }
+    .snap-preview{ flex-direction: column; }
+    .snap-preview img{ width: 100%; height: 160px; }
+    .hud-stat{ min-width: 80px; padding: 8px 10px; }
+    .hud-stat .v{ font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">Booth · Scramble · Solve</div>
+    <h1>Face <span>Puzzle</span></h1>
+    <p class="sub">Snap a photo, pick a grid, and put yourself back together. Drag tiles to swap them — green borders mean you've nailed the spot.</p>
+  </header>
+
+  <!-- ================= SCREEN 1: CAMERA ================= -->
+  <section id="screenCamera" class="stage">
+    <div class="panel-label"><span class="dot live" id="camDot"></span> Camera feed</div>
+
+    <div class="camera-frame" id="cameraFrame">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="scan-line" id="scanLine"></div>
+      <div class="corner-frame" id="cornerFrame"><span></span><span></span><span></span><span></span></div>
+
+      <div class="cam-placeholder hidden" id="camPlaceholder">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#756f81" stroke-width="1.5"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        <p style="color:var(--ink-faint); font-size:13.5px;">Waiting for camera access…</p>
+      </div>
+
+      <div class="cam-error hidden" id="camError">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#e2685a" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+        <strong id="camErrorTitle">Camera unavailable</strong>
+        <p id="camErrorMsg">We couldn't access your camera. Check your browser's site permissions and allow camera access, then try again.</p>
+        <button class="btn-secondary btn-sm" id="retryCamBtn" type="button">Try again</button>
+      </div>
+    </div>
+
+    <canvas id="snapCanvas"></canvas>
+
+    <div class="controls-row">
+      <button class="btn-primary" id="takePhotoBtn" type="button" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        Take Photo
+      </button>
+    </div>
+
+    <div class="or-divider"><span>or</span></div>
+
+    <div class="controls-row">
+      <button class="btn-secondary" id="uploadPhotoBtn" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        Upload Photo
+      </button>
+      <input type="file" id="uploadInput" accept="image/*" class="hidden" />
+    </div>
+  </section>
+
+  <!-- ================= SCREEN 2: DIFFICULTY ================= -->
+  <section id="screenDifficulty" class="stage hidden">
+    <div class="panel-label"><span class="dot"></span> Photo captured — pick a difficulty</div>
+    <div class="snap-preview">
+      <img id="snapPreviewImg" alt="Captured photo preview" />
+      <div class="diff-grid">
+        <div class="diff-card" data-size="3"><span class="n">3×3</span><span class="lbl">Easy · 9 tiles</span></div>
+        <div class="diff-card selected" data-size="4"><span class="n">4×4</span><span class="lbl">Medium · 16 tiles</span></div>
+        <div class="diff-card" data-size="5"><span class="n">5×5</span><span class="lbl">Hard · 25 tiles</span></div>
+      </div>
+    </div>
+    <div class="controls-row">
+      <button class="btn-secondary" id="retakeBtn" type="button">Retake Photo</button>
+      <button class="btn-primary" id="startPuzzleBtn" type="button">Start Puzzle</button>
+    </div>
+  </section>
+
+  <!-- ================= SCREEN 3: PUZZLE ================= -->
+  <section id="screenPuzzle" class="stage hidden">
+    <div class="hud">
+      <div class="hud-stat timer">
+        <div class="v" id="hudTimer">00:00.0</div>
+        <div class="k">Time</div>
+      </div>
+      <div class="hud-stat">
+        <div class="v" id="hudMoves">0</div>
+        <div class="k">Moves</div>
+      </div>
+      <div class="hud-stat progress">
+        <div class="v" id="hudProgress">0 / 9</div>
+        <div class="k">Correct</div>
+      </div>
+    </div>
+
+    <div class="board-shell" id="boardShell"></div>
+
+    <div class="controls-row">
+      <button class="btn-ghost btn-sm" id="newPhotoBtnInGame" type="button">New Photo</button>
+      <button class="btn-secondary btn-sm" id="shuffleAgainBtn" type="button">Reshuffle</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- ================= RESULTS OVERLAY ================= -->
+<div class="overlay hidden" id="resultsOverlay">
+  <div class="result-card">
+    <div class="badge">Puzzle solved</div>
+    <h2>Nicely pieced together.</h2>
+    <div class="result-stats">
+      <div><div class="v" id="resTime">00:00.0</div><div class="k">Final time</div></div>
+      <div><div class="v" id="resMoves">0</div><div class="k">Moves</div></div>
+      <div><div class="v" id="resDiff">4×4</div><div class="k">Difficulty</div></div>
+    </div>
+    <div class="new-best hidden" id="newBestTag">★ New top-5 best time!</div>
+
+    <div class="leaderboard">
+      <h3>Best times</h3>
+      <div id="leaderboardList"></div>
+    </div>
+
+    <div class="result-actions">
+      <button class="btn-secondary" id="newPhotoBtnResults" type="button">New Photo</button>
+      <button class="btn-primary" id="playAgainBtn" type="button">Play Again</button>
+    </div>
+  </div>
+</div>
+
+<footer class="foot">Runs entirely in your browser. Your photo is never uploaded anywhere.</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     STATE
+  ============================================================ */
+  const state = {
+    stream: null,
+    capturedDataUrl: null,
+    gridSize: 4,
+    tiles: [],          // array of tile objects, index = current board position
+    boardOrderIndex: [], // not used directly; tiles carry currentPos
+    moves: 0,
+    startTime: null,
+    elapsed: 0,
+    timerInterval: null,
+    running: false,
+    dragInfo: null,
+    boardPx: 0,
+  };
+
+  const LB_KEY = "facePuzzleLeaderboard_v1";
+
+  /* ============================================================
+     ELEMENT REFS
+  ============================================================ */
+  const el = {
+    screenCamera: document.getElementById("screenCamera"),
+    screenDifficulty: document.getElementById("screenDifficulty"),
+    screenPuzzle: document.getElementById("screenPuzzle"),
+    video: document.getElementById("video"),
+    cameraFrame: document.getElementById("cameraFrame"),
+    camPlaceholder: document.getElementById("camPlaceholder"),
+    camError: document.getElementById("camError"),
+    camErrorTitle: document.getElementById("camErrorTitle"),
+    camErrorMsg: document.getElementById("camErrorMsg"),
+    retryCamBtn: document.getElementById("retryCamBtn"),
+    scanLine: document.getElementById("scanLine"),
+    cornerFrame: document.getElementById("cornerFrame"),
+    camDot: document.getElementById("camDot"),
+    takePhotoBtn: document.getElementById("takePhotoBtn"),
+    uploadPhotoBtn: document.getElementById("uploadPhotoBtn"),
+    uploadInput: document.getElementById("uploadInput"),
+    snapCanvas: document.getElementById("snapCanvas"),
+    snapPreviewImg: document.getElementById("snapPreviewImg"),
+    diffCards: Array.from(document.querySelectorAll(".diff-card")),
+    retakeBtn: document.getElementById("retakeBtn"),
+    startPuzzleBtn: document.getElementById("startPuzzleBtn"),
+    hudTimer: document.getElementById("hudTimer"),
+    hudMoves: document.getElementById("hudMoves"),
+    hudProgress: document.getElementById("hudProgress"),
+    boardShell: document.getElementById("boardShell"),
+    newPhotoBtnInGame: document.getElementById("newPhotoBtnInGame"),
+    shuffleAgainBtn: document.getElementById("shuffleAgainBtn"),
+    resultsOverlay: document.getElementById("resultsOverlay"),
+    resTime: document.getElementById("resTime"),
+    resMoves: document.getElementById("resMoves"),
+    resDiff: document.getElementById("resDiff"),
+    newBestTag: document.getElementById("newBestTag"),
+    leaderboardList: document.getElementById("leaderboardList"),
+    newPhotoBtnResults: document.getElementById("newPhotoBtnResults"),
+    playAgainBtn: document.getElementById("playAgainBtn"),
+  };
+
+  function showScreen(name){
+    el.screenCamera.classList.toggle("hidden", name !== "camera");
+    el.screenDifficulty.classList.toggle("hidden", name !== "difficulty");
+    el.screenPuzzle.classList.toggle("hidden", name !== "puzzle");
+  }
+
+  /* ============================================================
+     CAMERA
+  ============================================================ */
+  async function startCamera(){
+    el.camError.classList.add("hidden");
+    el.camPlaceholder.classList.remove("hidden");
+    el.takePhotoBtn.disabled = true;
+    el.camDot.classList.add("live");
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      showCamError(
+        "Camera not supported",
+        "This browser doesn't support camera access (getUserMedia). Try the latest Chrome, Firefox, or Safari, and make sure you're on HTTPS or localhost."
+      );
+      return;
+    }
+
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } },
+        audio: false
+      });
+      state.stream = stream;
+      el.video.srcObject = stream;
+      await el.video.play().catch(()=>{});
+      el.camPlaceholder.classList.add("hidden");
+      el.takePhotoBtn.disabled = false;
+    } catch(err){
+      let title = "Camera unavailable";
+      let msg = "We couldn't access your camera. Check your browser's site permissions and allow camera access, then try again.";
+      if (err && err.name === "NotAllowedError"){
+        title = "Camera permission denied";
+        msg = "You'll need to allow camera access in your browser's site settings for this page, then click \"Try again.\"";
+      } else if (err && err.name === "NotFoundError"){
+        title = "No camera found";
+        msg = "We couldn't find a camera on this device. Connect a webcam or try on a device that has one.";
+      } else if (err && err.name === "NotReadableError"){
+        title = "Camera already in use";
+        msg = "Your camera seems to be in use by another app. Close other apps using the camera and try again.";
+      } else if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1"){
+        title = "Secure connection required";
+        msg = "Camera access requires HTTPS or localhost. Open this page over a secure connection and try again.";
+      }
+      showCamError(title, msg);
+    }
+  }
+
+  function showCamError(title, msg){
+    el.camPlaceholder.classList.add("hidden");
+    el.camErrorTitle.textContent = title;
+    el.camErrorMsg.textContent = msg;
+    el.camError.classList.remove("hidden");
+    el.takePhotoBtn.disabled = true;
+    el.camDot.classList.remove("live");
+  }
+
+  function stopCamera(){
+    if (state.stream){
+      state.stream.getTracks().forEach(t => t.stop());
+      state.stream = null;
+    }
+  }
+
+  el.retryCamBtn.addEventListener("click", startCamera);
+
+  /* ============================================================
+     SNAPSHOT
+  ============================================================ */
+  el.takePhotoBtn.addEventListener("click", () => {
+    const video = el.video;
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return;
+
+    // Crop to a centered square for a clean puzzle aspect ratio
+    const side = Math.min(vw, vh);
+    const sx = (vw - side) / 2;
+    const sy = (vh - side) / 2;
+
+    const canvas = el.snapCanvas;
+    const outputSize = 720;
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+    const ctx = canvas.getContext("2d");
+
+    // Mirror horizontally to match the preview (selfie view)
+    ctx.save();
+    ctx.translate(outputSize, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, sx, sy, side, side, 0, 0, outputSize, outputSize);
+    ctx.restore();
+
+    state.capturedDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    el.snapPreviewImg.src = state.capturedDataUrl;
+
+    showScreen("difficulty");
+  });
+
+  /* ============================================================
+     UPLOAD PHOTO (alternative to camera capture)
+  ============================================================ */
+  el.uploadPhotoBtn.addEventListener("click", () => {
+    el.uploadInput.click();
+  });
+
+  el.uploadInput.addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")){
+      alert("Please choose an image file.");
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const img = new Image();
+      img.onload = () => {
+        const iw = img.naturalWidth, ih = img.naturalHeight;
+        if (!iw || !ih) return;
+
+        // Crop to a centered square, same pipeline as the camera snapshot
+        const side = Math.min(iw, ih);
+        const sx = (iw - side) / 2;
+        const sy = (ih - side) / 2;
+
+        const canvas = el.snapCanvas;
+        const outputSize = 720;
+        canvas.width = outputSize;
+        canvas.height = outputSize;
+        const ctx = canvas.getContext("2d");
+
+        // No mirroring for uploaded photos — show them as-is
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, outputSize, outputSize);
+
+        state.capturedDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+        el.snapPreviewImg.src = state.capturedDataUrl;
+
+        showScreen("difficulty");
+        e.target.value = ""; // reset so the same file can be re-selected later
+      };
+      img.onerror = () => {
+        alert("That image couldn't be loaded. Try a different file.");
+        e.target.value = "";
+      };
+      img.src = readerEvent.target.result;
+    };
+    reader.onerror = () => {
+      alert("That file couldn't be read. Try a different image.");
+      e.target.value = "";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  el.retakeBtn.addEventListener("click", () => {
+    showScreen("camera");
+  });
+
+  /* ============================================================
+     DIFFICULTY SELECT
+  ============================================================ */
+  el.diffCards.forEach(card => {
+    card.addEventListener("click", () => {
+      el.diffCards.forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+      state.gridSize = parseInt(card.dataset.size, 10);
+    });
+  });
+
+  el.startPuzzleBtn.addEventListener("click", () => {
+    showScreen("puzzle");
+    buildPuzzle();
+  });
+
+  /* ============================================================
+     PUZZLE BUILD
+  ============================================================ */
+  function buildPuzzle(){
+    stopTimer();
+    el.boardShell.innerHTML = "";
+
+    const n = state.gridSize;
+    const total = n * n;
+
+    // Determine board pixel size (square, responsive)
+    const shellRect = el.boardShell.getBoundingClientRect();
+    state.boardPx = shellRect.width;
+    const cellPx = state.boardPx / n;
+
+    // Draw faint cell backgrounds (the "frame" each tile should land in)
+    for (let r = 0; r < n; r++){
+      for (let c = 0; c < n; c++){
+        const bg = document.createElement("div");
+        bg.className = "cell-bg";
+        bg.style.width = cellPx + "px";
+        bg.style.height = cellPx + "px";
+        bg.style.left = (c * cellPx) + "px";
+        bg.style.top = (r * cellPx) + "px";
+        el.boardShell.appendChild(bg);
+      }
+    }
+
+    // Build tile data: correctIndex 0..total-1 (row-major)
+    let order = [];
+    for (let i = 0; i < total; i++) order.push(i);
+    order = shuffleSolvable(order, n);
+
+    state.tiles = order.map((correctIndex, currentPos) => {
+      return {
+        correctIndex,
+        currentPos,
+        el: null
+      };
+    });
+
+    // Create DOM tiles
+    state.tiles.forEach(tile => {
+      const tileEl = document.createElement("div");
+      tileEl.className = "tile";
+      const correctRow = Math.floor(tile.correctIndex / n);
+      const correctCol = tile.correctIndex % n;
+      tileEl.style.width = cellPx + "px";
+      tileEl.style.height = cellPx + "px";
+      tileEl.style.backgroundImage = `url(${state.capturedDataUrl})`;
+      tileEl.style.backgroundSize = `${state.boardPx}px ${state.boardPx}px`;
+      tileEl.style.backgroundPosition = `-${correctCol * cellPx}px -${correctRow * cellPx}px`;
+      tileEl.dataset.correctIndex = tile.correctIndex;
+      tile.el = tileEl;
+      positionTile(tile, cellPx, false);
+      attachDragHandlers(tileEl, tile);
+      el.boardShell.appendChild(tileEl);
+    });
+
+    state.moves = 0;
+    state.elapsed = 0;
+    state.startTime = performance.now();
+    state.running = true;
+    updateHud();
+    refreshCorrectness();
+    startTimer();
+
+    window.removeEventListener("resize", onResize);
+    window.addEventListener("resize", onResize);
+  }
+
+  function cellPxNow(){
+    return state.boardPx / state.gridSize;
+  }
+
+  function positionTile(tile, cellPx, animate){
+    const n = state.gridSize;
+    const row = Math.floor(tile.currentPos / n);
+    const col = tile.currentPos % n;
+    if (animate) tile.el.classList.add("settle");
+    tile.el.style.left = (col * cellPx) + "px";
+    tile.el.style.top = (row * cellPx) + "px";
+    if (animate){
+      setTimeout(() => tile.el.classList.remove("settle"), 320);
+    }
+  }
+
+  function onResize(){
+    const shellRect = el.boardShell.getBoundingClientRect();
+    if (!shellRect.width) return;
+    state.boardPx = shellRect.width;
+    const cellPx = state.boardPx / state.gridSize;
+    // resize cell backgrounds
+    const bgs = el.boardShell.querySelectorAll(".cell-bg");
+    bgs.forEach((bg, i) => {
+      const n = state.gridSize;
+      const r = Math.floor(i / n), c = i % n;
+      bg.style.width = cellPx + "px";
+      bg.style.height = cellPx + "px";
+      bg.style.left = (c * cellPx) + "px";
+      bg.style.top = (r * cellPx) + "px";
+    });
+    state.tiles.forEach(tile => {
+      const correctRow = Math.floor(tile.correctIndex / state.gridSize);
+      const correctCol = tile.correctIndex % state.gridSize;
+      tile.el.style.width = cellPx + "px";
+      tile.el.style.height = cellPx + "px";
+      tile.el.style.backgroundSize = `${state.boardPx}px ${state.boardPx}px`;
+      tile.el.style.backgroundPosition = `-${correctCol * cellPx}px -${correctRow * cellPx}px`;
+      positionTile(tile, cellPx, false);
+    });
+  }
+
+  /* ---------- Solvable shuffle ----------
+     For a free-swap (non-sliding) puzzle, ANY permutation is solvable
+     because we can swap any two tiles directly (unlike sliding puzzles
+     constrained to one empty slot). We just guarantee it's not already
+     fully solved and that every tile moves from its solved spot ideally.
+  ---------------------------------------- */
+  function shuffleSolvable(order, n){
+    const total = order.length;
+    let arr = order.slice();
+    do {
+      for (let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    } while (isFullySolved(arr) || tooManyFixedPoints(arr, total));
+    return arr;
+  }
+
+  function isFullySolved(arr){
+    return arr.every((val, idx) => val === idx);
+  }
+
+  function tooManyFixedPoints(arr, total){
+    // avoid a shuffle that leaves it trivially almost-solved
+    let fixed = 0;
+    arr.forEach((val, idx) => { if (val === idx) fixed++; });
+    return fixed > Math.max(1, Math.floor(total * 0.15));
+  }
+
+  /* ============================================================
+     DRAG & TOUCH HANDLING
+  ============================================================ */
+  function attachDragHandlers(tileEl, tile){
+    tileEl.addEventListener("mousedown", (e) => startDrag(e, tile, false));
+    tileEl.addEventListener("touchstart", (e) => startDrag(e, tile, true), { passive: false });
+  }
+
+  function getPoint(e, isTouch){
+    if (isTouch){
+      const t = e.touches[0] || e.changedTouches[0];
+      return { x: t.clientX, y: t.clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function startDrag(e, tile, isTouch){
+    if (!state.running) return;
+    e.preventDefault();
+    const point = getPoint(e, isTouch);
+    const shellRect = el.boardShell.getBoundingClientRect();
+    const tileRect = tile.el.getBoundingClientRect();
+
+    state.dragInfo = {
+      tile,
+      isTouch,
+      offsetX: point.x - tileRect.left,
+      offsetY: point.y - tileRect.top,
+      shellRect,
+      startPos: tile.currentPos
+    };
+
+    tile.el.classList.add("dragging");
+
+    const moveHandler = isTouch ? onTouchMove : onMouseMove;
+    const endHandler = isTouch ? onTouchEnd : onMouseUp;
+
+    if (isTouch){
+      window.addEventListener("touchmove", onTouchMove, { passive: false });
+      window.addEventListener("touchend", onTouchEnd);
+      window.addEventListener("touchcancel", onTouchEnd);
+    } else {
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    }
+  }
+
+  function onMouseMove(e){ dragMove(getPoint(e, false)); }
+  function onTouchMove(e){ e.preventDefault(); dragMove(getPoint(e, true)); }
+
+  function dragMove(point){
+    const info = state.dragInfo;
+    if (!info) return;
+    const x = point.x - info.shellRect.left - info.offsetX;
+    const y = point.y - info.shellRect.top - info.offsetY;
+    info.tile.el.style.left = x + "px";
+    info.tile.el.style.top = y + "px";
+  }
+
+  function onMouseUp(e){ dragEnd(getPoint(e, false)); }
+  function onTouchEnd(e){ dragEnd(getPoint(e, true)); }
+
+  function dragEnd(point){
+    const info = state.dragInfo;
+    if (!info) return;
+
+    window.removeEventListener("mousemove", onMouseMove);
+    window.removeEventListener("mouseup", onMouseUp);
+    window.removeEventListener("touchmove", onTouchMove);
+    window.removeEventListener("touchend", onTouchEnd);
+    window.removeEventListener("touchcancel", onTouchEnd);
+
+    const n = state.gridSize;
+    const cellPx = cellPxNow();
+    const localX = point.x - info.shellRect.left;
+    const localY = point.y - info.shellRect.top;
+
+    let col = Math.floor(localX / cellPx);
+    let row = Math.floor(localY / cellPx);
+    col = Math.max(0, Math.min(n - 1, col));
+    row = Math.max(0, Math.min(n - 1, row));
+    const targetPos = row * n + col;
+
+    info.tile.el.classList.remove("dragging");
+
+    if (targetPos !== info.startPos){
+      const targetTile = state.tiles.find(t => t.currentPos === targetPos);
+      if (targetTile){
+        // swap positions
+        targetTile.currentPos = info.startPos;
+        info.tile.currentPos = targetPos;
+        positionTile(targetTile, cellPx, true);
+        positionTile(info.tile, cellPx, true);
+        state.moves++;
+        updateHud();
+        refreshCorrectness();
+        checkWin();
+      }
+    } else {
+      // snap back to original cell
+      positionTile(info.tile, cellPx, true);
+    }
+
+    state.dragInfo = null;
+  }
+
+  function refreshCorrectness(){
+    let correctCount = 0;
+    state.tiles.forEach(tile => {
+      const isCorrect = tile.currentPos === tile.correctIndex;
+      tile.el.classList.toggle("correct", isCorrect);
+      if (isCorrect) correctCount++;
+    });
+    el.hudProgress.textContent = `${correctCount} / ${state.tiles.length}`;
+    return correctCount;
+  }
+
+  function checkWin(){
+    const correctCount = state.tiles.filter(t => t.currentPos === t.correctIndex).length;
+    if (correctCount === state.tiles.length){
+      handleWin();
+    }
+  }
+
+  /* ============================================================
+     TIMER
+  ============================================================ */
+  function startTimer(){
+    stopTimer();
+    state.timerInterval = setInterval(() => {
+      state.elapsed = (performance.now() - state.startTime) / 1000;
+      el.hudTimer.textContent = formatTime(state.elapsed);
+    }, 100);
+  }
+  function stopTimer(){
+    if (state.timerInterval){
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+    }
+  }
+  function formatTime(totalSeconds){
+    const m = Math.floor(totalSeconds / 60);
+    const s = Math.floor(totalSeconds % 60);
+    const t = Math.floor((totalSeconds * 10) % 10);
+    return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}.${t}`;
+  }
+
+  function updateHud(){
+    el.hudMoves.textContent = state.moves;
+  }
+
+  /* ============================================================
+     WIN / RESULTS
+  ============================================================ */
+  function handleWin(){
+    state.running = false;
+    stopTimer();
+    el.hudTimer.textContent = formatTime(state.elapsed);
+
+    const diffLabel = `${state.gridSize}×${state.gridSize}`;
+    el.resTime.textContent = formatTime(state.elapsed);
+    el.resMoves.textContent = state.moves;
+    el.resDiff.textContent = diffLabel;
+
+    const isNewBest = saveScore(state.elapsed, state.moves, state.gridSize);
+    el.newBestTag.classList.toggle("hidden", !isNewBest);
+
+    renderLeaderboard(state.gridSize);
+    el.resultsOverlay.classList.remove("hidden");
+  }
+
+  /* ============================================================
+     LEADERBOARD (localStorage)
+  ============================================================ */
+  function loadLeaderboard(){
+    try{
+      const raw = localStorage.getItem(LB_KEY);
+      if (!raw) return {};
+      return JSON.parse(raw);
+    } catch(e){
+      return {};
+    }
+  }
+
+  function persistLeaderboard(data){
+    try{
+      localStorage.setItem(LB_KEY, JSON.stringify(data));
+    } catch(e){ /* storage unavailable — fail silently */ }
+  }
+
+  function saveScore(seconds, moves, gridSize){
+    const data = loadLeaderboard();
+    const key = String(gridSize);
+    if (!data[key]) data[key] = [];
+
+    const entry = {
+      time: seconds,
+      moves: moves,
+      difficulty: `${gridSize}×${gridSize}`,
+      date: new Date().toISOString()
+    };
+
+    data[key].push(entry);
+    data[key].sort((a, b) => a.time - b.time);
+    data[key] = data[key].slice(0, 5);
+
+    const madeTop5 = data[key].includes(entry);
+    persistLeaderboard(data);
+    return madeTop5;
+  }
+
+  function renderLeaderboard(gridSize){
+    const data = loadLeaderboard();
+    const key = String(gridSize);
+    const list = data[key] || [];
+    el.leaderboardList.innerHTML = "";
+
+    if (list.length === 0){
+      el.leaderboardList.innerHTML = `<div class="lb-empty">No times yet for ${gridSize}×${gridSize} — this run starts the board.</div>`;
+      return;
+    }
+
+    list.forEach((entry, i) => {
+      const row = document.createElement("div");
+      row.className = "lb-row";
+      const isThisRun = Math.abs(entry.time - state.elapsed) < 0.05 && entry.moves === state.moves;
+      if (isThisRun) row.classList.add("this-run");
+      const dateStr = new Date(entry.date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      row.innerHTML = `
+        <span class="lb-rank">${i + 1}</span>
+        <span class="lb-time">${formatTime(entry.time)}</span>
+        <span class="lb-meta">${entry.moves} moves · ${dateStr}</span>
+      `;
+      el.leaderboardList.appendChild(row);
+    });
+  }
+
+  /* ============================================================
+     BUTTONS: navigation
+  ============================================================ */
+  el.shuffleAgainBtn.addEventListener("click", () => {
+    buildPuzzle();
+  });
+
+  el.newPhotoBtnInGame.addEventListener("click", goToNewPhoto);
+  el.newPhotoBtnResults.addEventListener("click", () => {
+    el.resultsOverlay.classList.add("hidden");
+    goToNewPhoto();
+  });
+
+  el.playAgainBtn.addEventListener("click", () => {
+    el.resultsOverlay.classList.add("hidden");
+    showScreen("puzzle");
+    buildPuzzle();
+  });
+
+  function goToNewPhoto(){
+    stopTimer();
+    state.running = false;
+    showScreen("camera");
+    if (!state.stream){
+      startCamera();
+    } else {
+      el.takePhotoBtn.disabled = false;
+    }
+  }
+
+  /* ============================================================
+     INIT
+  ============================================================ */
+  startCamera();
+
+})();
+</script>
+</body>
+</html>
