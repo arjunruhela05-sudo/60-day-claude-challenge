@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Typing Speed Studio — Programming Edition</title>
+<style>
+/* ============================= TOKENS ============================= */
+:root{
+  --bg:#0A0C12; --bg-grid: rgba(124,111,240,0.035);
+  --panel:#12151F; --panel-2:#171B28; --panel-3:#1D2233;
+  --border:#242A3D; --border-soft:#1A1F2E;
+  --text:#E7E9F3; --text-dim:#9096AC; --text-faint:#565D77;
+  --accent:#7C6FF0; --accent-2:#4FD1C5; --accent-soft:rgba(124,111,240,0.14);
+  --correct:#52D6C4; --incorrect:#FF6B7A; --incorrect-bg:rgba(255,107,122,0.14);
+  --caret:#F5A623; --success:#34D399; --warning:#F5A623;
+  --gutter:#3A4160;
+  --radius:14px; --radius-sm:8px;
+  --font-display:'Space Grotesk',ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-body:'Inter',ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-mono:ui-monospace,'Cascadia Code','JetBrains Mono','Fira Code','Source Code Pro',Menlo,Consolas,monospace;
+  --code-size:1.28rem;
+  --shadow-lg:0 20px 60px rgba(0,0,0,0.45);
+  --shadow-sm:0 4px 16px rgba(0,0,0,0.3);
+}
+[data-theme="cyan"]{
+  --accent:#22D3EE; --accent-2:#F5A623; --accent-soft:rgba(34,211,238,0.14); --caret:#F5A623;
+}
+[data-theme="ember"]{
+  --accent:#D97757; --accent-2:#4FD1C5; --accent-soft:rgba(217,119,87,0.16); --caret:#4FD1C5;
+}
+[data-mode="light"]{
+  --bg:#F3F4F8; --bg-grid: rgba(124,111,240,0.05);
+  --panel:#FFFFFF; --panel-2:#F7F8FC; --panel-3:#EFF1F8;
+  --border:#E1E3EE; --border-soft:#ECEDF5;
+  --text:#1A1D2B; --text-dim:#5C6178; --text-faint:#9498AC;
+  --incorrect-bg:rgba(255,107,122,0.12);
+  --gutter:#C7CBDD;
+  --shadow-lg:0 20px 50px rgba(30,30,60,0.10);
+  --shadow-sm:0 4px 14px rgba(30,30,60,0.08);
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  background:
+    radial-gradient(1200px 700px at 15% -10%, var(--bg-grid), transparent 60%),
+    radial-gradient(900px 600px at 100% 10%, rgba(79,209,197,0.03), transparent 55%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  min-height:100vh;
+  transition:background .4s ease,color .4s ease;
+  line-height:1.5;
+}
+::selection{ background:var(--accent); color:#0A0C12; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:6px; }
+.sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+
+/* scrollbar */
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{ background:var(--border); border-radius:8px; }
+::-webkit-scrollbar-thumb:hover{ background:var(--text-faint); }
+
+/* ============================= LAYOUT ============================= */
+.app{ max-width:1160px; margin:0 auto; padding:28px 24px 80px; }
+
+/* ---- Header ---- */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; margin-bottom:26px; flex-wrap:wrap;
+}
+.brand{ display:flex; align-items:center; gap:12px; }
+.brand-mark{
+  width:38px; height:38px; border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-weight:700; color:#0A0C12; font-size:1.05rem;
+  box-shadow:0 6px 20px -4px var(--accent-soft);
+}
+.brand-text h1{
+  font-family:var(--font-display); font-size:1.18rem; font-weight:700; letter-spacing:-0.02em;
+}
+.brand-text span{ font-family:var(--font-mono); font-size:.72rem; color:var(--text-faint); letter-spacing:.06em; text-transform:uppercase;}
+.top-actions{ display:flex; align-items:center; gap:8px; }
+.icon-btn{
+  width:38px; height:38px; border-radius:10px; border:1px solid var(--border);
+  background:var(--panel); color:var(--text-dim); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all .18s ease; font-size:1rem;
+}
+.icon-btn:hover{ color:var(--text); border-color:var(--accent); transform:translateY(-1px); }
+.icon-btn.active{ color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+
+/* ---- Mode tabs ---- */
+.mode-tabs{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.mode-tab{
+  font-family:var(--font-mono); font-size:.78rem; letter-spacing:.02em;
+  padding:9px 14px; border-radius:9px; border:1px solid var(--border);
+  background:var(--panel); color:var(--text-dim); cursor:pointer;
+  transition:all .16s ease; display:flex; align-items:center; gap:6px;
+}
+.mode-tab:hover{ color:var(--text); border-color:var(--text-faint); }
+.mode-tab.active{ color:#0A0C12; background:var(--accent); border-color:var(--accent); font-weight:600; }
+
+/* ---- Config bar ---- */
+.config-bar{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  background:var(--panel); border:1px solid var(--border); border-radius:12px;
+  padding:12px 14px; margin-bottom:20px; min-height:56px;
+}
+.config-group{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.config-label{ font-family:var(--font-mono); font-size:.7rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-right:4px;}
+.chip{
+  font-family:var(--font-mono); font-size:.8rem; padding:6px 12px; border-radius:20px;
+  border:1px solid var(--border); background:var(--panel-2); color:var(--text-dim); cursor:pointer;
+  transition:all .15s ease;
+}
+.chip:hover{ border-color:var(--text-faint); color:var(--text); }
+.chip.active{ background:var(--accent); color:#0A0C12; border-color:var(--accent); font-weight:600; }
+.config-divider{ width:1px; height:22px; background:var(--border); margin:0 4px; }
+.select-mini{
+  font-family:var(--font-mono); font-size:.8rem; background:var(--panel-2); color:var(--text);
+  border:1px solid var(--border); border-radius:8px; padding:6px 10px; cursor:pointer;
+}
+.toggle-pill{
+  display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:.75rem;
+  color:var(--text-dim); cursor:pointer; padding:6px 10px; border-radius:20px; border:1px solid transparent;
+}
+.toggle-pill.on{ color:var(--accent-2); background:rgba(79,209,197,0.1); border-color:rgba(79,209,197,0.25); }
+.toggle-dot{ width:8px; height:8px; border-radius:50%; background:var(--text-faint); }
+.toggle-pill.on .toggle-dot{ background:var(--accent-2); box-shadow:0 0 8px var(--accent-2); }
+
+/* ---- Stats strip ---- */
+.stats-strip{
+  display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:16px;
+}
+@media (max-width:900px){ .stats-strip{ grid-template-columns:repeat(3,1fr);} }
+@media (max-width:520px){ .stats-strip{ grid-template-columns:repeat(2,1fr);} }
+.stat-box{
+  background:var(--panel); border:1px solid var(--border); border-radius:10px;
+  padding:10px 12px; position:relative; overflow:hidden;
+}
+.stat-box .val{ font-family:var(--font-mono); font-size:1.5rem; font-weight:700; letter-spacing:-0.02em; line-height:1.1; color:var(--text); font-variant-numeric:tabular-nums;}
+.stat-box .lbl{ font-size:.66rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.07em; margin-top:3px; font-family:var(--font-mono);}
+.stat-box.accent .val{ color:var(--accent-2); }
+.stat-box.warn .val{ color:var(--incorrect); }
+
+/* ---- Progress bar ---- */
+.progress-track{
+  height:4px; width:100%; background:var(--border-soft); border-radius:4px; overflow:hidden; margin-bottom:18px;
+}
+.progress-fill{
+  height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  transition:width .15s linear; border-radius:4px;
+}
+
+/* ---- Typing stage ---- */
+.stage-wrap{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow-lg); overflow:hidden; margin-bottom:18px; position:relative;
+}
+.stage-bar{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 16px; border-bottom:1px solid var(--border-soft); background:var(--panel-2);
+}
+.stage-dots{ display:flex; gap:6px; }
+.stage-dots span{ width:10px; height:10px; border-radius:50%; background:var(--border); }
+.stage-dots span:nth-child(1){ background:#FF6B7A; opacity:.55;}
+.stage-dots span:nth-child(2){ background:#F5A623; opacity:.55;}
+.stage-dots span:nth-child(3){ background:#52D6C4; opacity:.55;}
+.stage-file{ font-family:var(--font-mono); font-size:.75rem; color:var(--text-faint); }
+.stage-meta{ font-family:var(--font-mono); font-size:.72rem; color:var(--text-faint); display:flex; gap:12px;}
+
+.type-area{
+  display:flex; padding:28px 8px 30px 0; position:relative; user-select:none; -webkit-user-select:none;
+  min-height:190px;
+}
+.gutter{
+  font-family:var(--font-mono); font-size:var(--code-size); line-height:1.85;
+  color:var(--gutter); text-align:right; padding:0 16px 0 22px; user-select:none; flex-shrink:0;
+}
+.code-text{
+  font-family:var(--font-mono); font-size:var(--code-size); line-height:1.85; letter-spacing:0.2px;
+  color:var(--text-faint); white-space:pre-wrap; word-break:break-word; padding-right:26px; flex:1;
+  filter:blur(0px); transition:filter .25s ease;
+}
+.type-area.blurred .code-text{ filter:blur(5px); opacity:.5; }
+.code-text .ch{ position:relative; border-radius:2px; }
+.code-text .ch.correct{ color:var(--text); }
+.code-text .ch.incorrect{ color:var(--incorrect); background:var(--incorrect-bg); text-decoration:underline; text-decoration-color:var(--incorrect); }
+.code-text .ch.current{ color:var(--text); }
+.code-text .ch.current::before{
+  content:''; position:absolute; left:-1px; top:-2px; bottom:-2px; width:2px; background:var(--caret);
+  animation:blink 1s steps(1) infinite;
+}
+.code-text .nl{ display:inline-block; width:0; }
+.code-text .indent-guide{ color:var(--text-faint); opacity:.35; }
+@keyframes blink{ 50%{ opacity:0; } }
+.type-area.paused .code-text{ filter:blur(6px); opacity:.35; }
+.type-area .line{ display:block; position:relative; }
+.type-area.focus-mode .line{ display:none; opacity:0; }
+.type-area.focus-mode .line.focus-active{ display:block; opacity:1; }
+.type-area.focus-mode .line.focus-prev,
+.type-area.focus-mode .line.focus-next{ display:block; opacity:.28; }
+
+.hidden-input{ position:absolute; opacity:0; pointer-events:none; width:1px; height:1px; }
+
+.click-veil{
+  position:absolute; inset:0; background:rgba(10,12,18,0.72); backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px;
+  cursor:text; z-index:5; font-family:var(--font-mono); color:var(--text-dim); font-size:.85rem;
+  opacity:0; pointer-events:none; transition:opacity .2s ease;
+}
+.click-veil.show{ opacity:1; pointer-events:auto; }
+.click-veil kbd{ background:var(--panel-3); border:1px solid var(--border); border-radius:6px; padding:2px 8px; font-size:.75rem; }
+
+/* ---- Controls row ---- */
+.controls-row{ display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:6px; }
+.btn{
+  font-family:var(--font-body); font-size:.85rem; font-weight:600; padding:10px 18px; border-radius:10px;
+  border:1px solid var(--border); background:var(--panel); color:var(--text-dim); cursor:pointer;
+  transition:all .16s ease; display:flex; align-items:center; gap:8px;
+}
+.btn:hover{ color:var(--text); border-color:var(--text-faint); transform:translateY(-1px); }
+.btn.primary{ background:var(--accent); color:#0A0C12; border-color:var(--accent); }
+.btn.primary:hover{ filter:brightness(1.08); }
+.btn.ghost{ background:transparent; }
+.hint-row{ text-align:center; color:var(--text-faint); font-family:var(--font-mono); font-size:.72rem; margin-top:8px; }
+.hint-row kbd{ background:var(--panel-2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; }
+
+/* ============================= RESULTS ============================= */
+.results{ display:none; animation:fadeUp .5s ease; }
+.results.show{ display:block; }
+@keyframes fadeUp{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:translateY(0);} }
+
+.results-hero{
+  display:grid; grid-template-columns:1.1fr 1fr; gap:18px; margin-bottom:18px;
+}
+@media (max-width:800px){ .results-hero{ grid-template-columns:1fr; } }
+.panel{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:22px;
+  box-shadow:var(--shadow-sm);
+}
+.panel h3{ font-family:var(--font-display); font-size:.95rem; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px;}
+.panel h3 .tag{ font-family:var(--font-mono); font-size:.65rem; color:var(--text-faint); font-weight:400; border:1px solid var(--border); padding:2px 7px; border-radius:20px;}
+
+.hero-wpm{ display:flex; align-items:flex-end; gap:18px; margin-bottom:18px; flex-wrap:wrap;}
+.hero-wpm .num{ font-family:var(--font-display); font-size:4rem; font-weight:700; letter-spacing:-0.03em; color:var(--accent); line-height:1;}
+.hero-wpm .cap{ font-family:var(--font-mono); font-size:.8rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; padding-bottom:10px;}
+.mini-metrics{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.mini-metric{ background:var(--panel-2); border:1px solid var(--border-soft); border-radius:9px; padding:10px; text-align:center;}
+.mini-metric .v{ font-family:var(--font-mono); font-weight:700; font-size:1.15rem; }
+.mini-metric .l{ font-size:.62rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; margin-top:2px;}
+
+canvas{ display:block; width:100%; }
+.chart-wrap{ position:relative; height:150px; margin-top:6px;}
+
+.char-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:6px;}
+.char-cell{ text-align:center; padding:10px 4px; border-radius:9px; background:var(--panel-2); border:1px solid var(--border-soft);}
+.char-cell .v{ font-family:var(--font-mono); font-weight:700; font-size:1.1rem;}
+.char-cell.correct .v{ color:var(--correct); }
+.char-cell.incorrect .v{ color:var(--incorrect); }
+.char-cell.extra .v{ color:var(--warning); }
+.char-cell.missed .v{ color:var(--text-faint); }
+.char-cell .l{ font-size:.6rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; margin-top:2px;}
+
+.badges-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;}
+.badge{
+  display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:.72rem;
+  padding:6px 11px; border-radius:20px; border:1px solid var(--border); background:var(--panel-2); color:var(--text-dim);
+}
+.badge.new{ border-color:var(--accent-2); color:var(--accent-2); background:rgba(79,209,197,0.08); animation:pop .4s ease;}
+@keyframes pop{ 0%{ transform:scale(.8); opacity:0;} 60%{ transform:scale(1.06);} 100%{ transform:scale(1); opacity:1;} }
+
+.summary-text{ font-size:.88rem; color:var(--text-dim); line-height:1.7; }
+.summary-text b{ color:var(--text); }
+.keyboard-heat{ display:flex; flex-direction:column; gap:5px; margin-top:10px; align-items:center;}
+.kb-row{ display:flex; gap:5px; }
+.kb-key{
+  width:30px; height:30px; border-radius:6px; background:var(--panel-2); border:1px solid var(--border-soft);
+  display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:.65rem; color:var(--text-faint);
+}
+
+.results-actions{ display:flex; gap:10px; justify-content:center; margin:22px 0 6px; flex-wrap:wrap;}
+
+/* ---- History ---- */
+.history-panel{ margin-top:20px; }
+.history-table{ width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:.78rem;}
+.history-table th{ text-align:left; color:var(--text-faint); font-weight:500; padding:8px 10px; text-transform:uppercase; font-size:.64rem; letter-spacing:.05em; border-bottom:1px solid var(--border);}
+.history-table td{ padding:9px 10px; border-bottom:1px solid var(--border-soft); color:var(--text-dim); }
+.history-table tr:hover td{ background:var(--panel-2); color:var(--text); }
+.history-table .pb{ color:var(--accent-2); font-weight:700;}
+.empty-state{ text-align:center; padding:30px 10px; color:var(--text-faint); font-family:var(--font-mono); font-size:.8rem;}
+
+/* ---- Settings modal ---- */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(5,6,10,0.6); backdrop-filter:blur(4px);
+  display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
+}
+.modal-overlay.show{ display:flex; animation:fadeUp .25s ease; }
+.modal{
+  background:var(--panel); border:1px solid var(--border); border-radius:16px; max-width:460px; width:100%;
+  padding:24px; box-shadow:var(--shadow-lg); max-height:85vh; overflow-y:auto;
+}
+.modal h2{ font-family:var(--font-display); font-size:1.1rem; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;}
+.modal-close{ cursor:pointer; color:var(--text-faint); font-size:1.2rem; }
+.settings-row{ display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border-soft); gap:14px;}
+.settings-row:last-child{ border-bottom:none; }
+.settings-row .label{ font-size:.85rem; color:var(--text); }
+.settings-row .sub{ font-size:.72rem; color:var(--text-faint); margin-top:2px;}
+.theme-dots{ display:flex; gap:8px; }
+.theme-dot{ width:26px; height:26px; border-radius:50%; cursor:pointer; border:2px solid transparent; }
+.theme-dot.active{ border-color:var(--text); }
+.switch{ width:40px; height:22px; border-radius:20px; background:var(--panel-3); position:relative; cursor:pointer; border:1px solid var(--border); flex-shrink:0;}
+.switch .knob{ width:16px; height:16px; border-radius:50%; background:var(--text-faint); position:absolute; top:2px; left:2px; transition:all .2s ease;}
+.switch.on{ background:var(--accent-soft); border-color:var(--accent);}
+.switch.on .knob{ left:20px; background:var(--accent); }
+.font-controls{ display:flex; align-items:center; gap:10px; }
+.font-controls button{ width:26px; height:26px; border-radius:6px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); cursor:pointer;}
+
+kbd.shortcut{ background:var(--panel-2); border:1px solid var(--border); border-radius:5px; padding:2px 7px; font-family:var(--font-mono); font-size:.72rem;}
+.shortcuts-list{ display:flex; flex-direction:column; gap:10px;}
+.shortcuts-list .row{ display:flex; justify-content:space-between; font-size:.82rem; color:var(--text-dim);}
+
+.toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+  background:var(--panel-3); border:1px solid var(--border); color:var(--text); padding:11px 20px;
+  border-radius:10px; font-family:var(--font-mono); font-size:.8rem; z-index:60; transition:all .3s ease; box-shadow:var(--shadow-sm);
+  pointer-events:none;
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+footer{ text-align:center; color:var(--text-faint); font-family:var(--font-mono); font-size:.72rem; margin-top:40px; }
+
+@media (prefers-reduced-motion:reduce){
+  *{ animation-duration:.001s !important; transition-duration:.001s !important; }
+}
+@media (max-width:640px){
+  .code-text, .gutter{ font-size:1.02rem; line-height:1.7; }
+  .hero-wpm .num{ font-size:3rem; }
+  .mini-metrics, .char-grid{ grid-template-columns:repeat(2,1fr); }
+}
+</style>
+</head>
+<body data-theme="violet" data-mode="dark">
+<div class="app">
+
+  <!-- ============ HEADER ============ -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">&lt;/&gt;</div>
+      <div class="brand-text">
+        <h1>Typing Speed Studio</h1>
+        <span>Programming Edition</span>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="soundToggle" title="Toggle sound (S)" aria-label="Toggle sound">🔊</button>
+      <button class="icon-btn" id="focusToggle" title="Focus mode (F)" aria-label="Toggle focus mode">▤</button>
+      <button class="icon-btn" id="historyBtn" title="Session history (H)" aria-label="Open history">⏱</button>
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Open settings">⚙</button>
+    </div>
+  </div>
+
+  <!-- ============ MODE TABS ============ -->
+  <div class="mode-tabs" id="modeTabs" role="tablist" aria-label="Typing modes"></div>
+
+  <!-- ============ CONFIG BAR ============ -->
+  <div class="config-bar" id="configBar"></div>
+
+  <!-- ============ LIVE STATS ============ -->
+  <div class="stats-strip" id="statsStrip">
+    <div class="stat-box accent"><div class="val" id="statWpm">0</div><div class="lbl">WPM</div></div>
+    <div class="stat-box"><div class="val" id="statRaw">0</div><div class="lbl">Raw WPM</div></div>
+    <div class="stat-box"><div class="val" id="statCpm">0</div><div class="lbl">CPM</div></div>
+    <div class="stat-box"><div class="val" id="statAcc">100%</div><div class="lbl">Accuracy</div></div>
+    <div class="stat-box"><div class="val" id="statTime">0.0s</div><div class="lbl">Elapsed</div></div>
+    <div class="stat-box warn"><div class="val" id="statMistakes">0</div><div class="lbl">Mistakes</div></div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+  <!-- ============ TYPING STAGE ============ -->
+  <div class="stage-wrap">
+    <div class="stage-bar">
+      <div class="stage-dots"><span></span><span></span><span></span></div>
+      <div class="stage-file" id="stageFile">practice.js</div>
+      <div class="stage-meta">
+        <span id="metaStreak">streak 0</span>
+        <span id="metaRemaining">—</span>
+      </div>
+    </div>
+    <div class="type-area" id="typeArea">
+      <div class="gutter" id="gutter"></div>
+      <div class="code-text" id="codeText" tabindex="0" aria-label="Typing practice text"></div>
+      <div class="click-veil" id="clickVeil"><div>Click here or press any key to begin</div><div><kbd>Tab</kbd>+<kbd>Enter</kbd> restarts anytime · <kbd>Esc</kbd> pauses</div></div>
+    </div>
+    <input type="text" class="hidden-input" id="hiddenInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-hidden="true">
+  </div>
+
+  <div class="controls-row">
+    <button class="btn ghost" id="pauseBtn">⏸ Pause</button>
+    <button class="btn primary" id="restartBtn">⟳ Restart</button>
+    <button class="btn ghost" id="newTextBtn">⤾ New Snippet</button>
+  </div>
+  <div class="hint-row">Press <kbd>Tab</kbd> + <kbd>Enter</kbd> to restart instantly · <kbd>Esc</kbd> to pause · <kbd>?</kbd> for all shortcuts</div>
+
+  <!-- ============ RESULTS / ANALYTICS DASHBOARD ============ -->
+  <div class="results" id="results">
+    <div class="results-hero">
+      <div class="panel">
+        <h3>Performance <span class="tag" id="resultModeTag">time · 30s</span></h3>
+        <div class="hero-wpm">
+          <div><div class="num" id="resWpm">0</div><div class="cap" style="padding-bottom:0">words / min</div></div>
+          <div class="cap" id="pbFlare"></div>
+        </div>
+        <div class="mini-metrics">
+          <div class="mini-metric"><div class="v" id="resRaw">0</div><div class="l">Raw WPM</div></div>
+          <div class="mini-metric"><div class="v" id="resAcc">0%</div><div class="l">Accuracy</div></div>
+          <div class="mini-metric"><div class="v" id="resConsistency">0%</div><div class="l">Consistency</div></div>
+          <div class="mini-metric"><div class="v" id="resTime">0s</div><div class="l">Duration</div></div>
+        </div>
+        <div class="char-grid">
+          <div class="char-cell correct"><div class="v" id="charCorrect">0</div><div class="l">Correct</div></div>
+          <div class="char-cell incorrect"><div class="v" id="charIncorrect">0</div><div class="l">Incorrect</div></div>
+          <div class="char-cell extra"><div class="v" id="charExtra">0</div><div class="l">Extra</div></div>
+          <div class="char-cell missed"><div class="v" id="charMissed">0</div><div class="l">Missed</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>WPM over time <span class="tag">live samples</span></h3>
+        <div class="chart-wrap"><canvas id="wpmChart"></canvas></div>
+        <h3 style="margin-top:16px">Accuracy trend</h3>
+        <div class="chart-wrap" style="height:90px"><canvas id="accChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="results-hero">
+      <div class="panel">
+        <h3>Error heatmap <span class="tag">by key</span></h3>
+        <div class="keyboard-heat" id="keyboardHeat"></div>
+      </div>
+      <div class="panel">
+        <h3>Summary &amp; suggestions</h3>
+        <div class="summary-text" id="summaryText"></div>
+        <div class="badges-row" id="badgesRow"></div>
+      </div>
+    </div>
+
+    <div class="results-actions">
+      <button class="btn primary" id="tryAgainBtn">⟳ Try Again</button>
+      <button class="btn ghost" id="nextChallengeBtn">→ Next Challenge</button>
+    </div>
+
+    <div class="panel history-panel">
+      <h3>Session history <span class="tag" id="streakDaysTag">0 day streak</span></h3>
+      <div id="historyContent"></div>
+    </div>
+  </div>
+
+  <footer>Typing Speed Studio · all data stored locally in your browser · no account, no tracking</footer>
+</div>
+
+<!-- ============ SETTINGS MODAL ============ -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>Settings <span class="modal-close" id="closeSettings">✕</span></h2>
+    <div class="settings-row">
+      <div><div class="label">Dark mode</div><div class="sub">Toggle light / dark interface</div></div>
+      <div class="switch on" id="darkSwitch"><div class="knob"></div></div>
+    </div>
+    <div class="settings-row">
+      <div><div class="label">Accent theme</div><div class="sub">Choose your studio palette</div></div>
+      <div class="theme-dots">
+        <div class="theme-dot active" data-theme="violet" style="background:#7C6FF0" title="Indigo"></div>
+        <div class="theme-dot" data-theme="cyan" style="background:#22D3EE" title="Cyan / Amber"></div>
+        <div class="theme-dot" data-theme="ember" style="background:#D97757" title="Ember"></div>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div><div class="label">Font size</div><div class="sub">Adjust code text size</div></div>
+      <div class="font-controls">
+        <button id="fontDown">−</button>
+        <span id="fontSizeLabel" style="font-family:var(--font-mono); font-size:.8rem;">20px</span>
+        <button id="fontUp">+</button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div><div class="label">Sound effects</div><div class="sub">Key clicks &amp; completion chime</div></div>
+      <div class="switch" id="soundSwitch"><div class="knob"></div></div>
+    </div>
+    <div class="settings-row">
+      <div><div class="label">Focus mode</div><div class="sub">Show only the active line</div></div>
+      <div class="switch" id="focusSwitch"><div class="knob"></div></div>
+    </div>
+    <div class="settings-row">
+      <div><div class="label">Stop on error</div><div class="sub">Block progress until mistake fixed</div></div>
+      <div class="switch" id="stopErrorSwitch"><div class="knob"></div></div>
+    </div>
+    <h2 style="margin-top:6px; font-size:.95rem;">Keyboard shortcuts</h2>
+    <div class="shortcuts-list">
+      <div class="row"><span>Restart test</span><span><kbd class="shortcut">Tab</kbd> + <kbd class="shortcut">Enter</kbd></span></div>
+      <div class="row"><span>Pause / resume</span><span><kbd class="shortcut">Esc</kbd></span></div>
+      <div class="row"><span>New snippet</span><span><kbd class="shortcut">Ctrl</kbd> + <kbd class="shortcut">N</kbd></span></div>
+      <div class="row"><span>Toggle focus mode</span><span><kbd class="shortcut">F</kbd></span></div>
+      <div class="row"><span>Toggle sound</span><span><kbd class="shortcut">S</kbd></span></div>
+      <div class="row"><span>Show this panel</span><span><kbd class="shortcut">?</kbd></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ HISTORY MODAL ============ -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal" style="max-width:640px;">
+    <h2>Session history <span class="modal-close" id="closeHistory">✕</span></h2>
+    <div id="historyModalContent"></div>
+    <div class="results-actions" style="margin-top:14px;">
+      <button class="btn ghost" id="clearHistoryBtn">Clear history</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* =====================================================================
+   1. CONTENT LIBRARY — programming snippets, quotes
+   ===================================================================== */
+const SNIPPETS = {
+javascript:[
+{d:'easy',c:"function sum(a, b) {\n  return a + b;\n}\n\nconsole.log(sum(4, 7));"},
+{d:'easy',c:"const numbers = [1, 2, 3, 4, 5];\nconst doubled = numbers.map(n => n * 2);\nconsole.log(doubled);"},
+{d:'medium',c:"class Stack {\n  constructor() {\n    this.items = [];\n  }\n  push(item) {\n    this.items.push(item);\n  }\n  pop() {\n    return this.items.pop();\n  }\n}"},
+{d:'medium',c:"async function fetchUser(id) {\n  const res = await fetch(`/api/users/${id}`);\n  if (!res.ok) throw new Error('Request failed');\n  return res.json();\n}"},
+{d:'hard',c:"function debounce(fn, delay) {\n  let timer = null;\n  return function (...args) {\n    clearTimeout(timer);\n    timer = setTimeout(() => fn.apply(this, args), delay);\n  };\n}"},
+{d:'hard',c:"const memoize = (fn) => {\n  const cache = new Map();\n  return (...args) => {\n    const key = JSON.stringify(args);\n    if (cache.has(key)) return cache.get(key);\n    const result = fn(...args);\n    cache.set(key, result);\n    return result;\n  };\n};"},
+],
+python:[
+{d:'easy',c:"def greet(name):\n    return f\"Hello, {name}!\"\n\nprint(greet(\"World\"))"},
+{d:'easy',c:"numbers = [1, 2, 3, 4, 5]\nsquares = [n * n for n in numbers]\nprint(squares)"},
+{d:'medium',c:"class Node:\n    def __init__(self, value):\n        self.value = value\n        self.next = None\n\nclass LinkedList:\n    def __init__(self):\n        self.head = None"},
+{d:'medium',c:"def binary_search(arr, target):\n    low, high = 0, len(arr) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return -1"},
+{d:'hard',c:"from functools import lru_cache\n\n@lru_cache(maxsize=None)\ndef fibonacci(n):\n    if n < 2:\n        return n\n    return fibonacci(n - 1) + fibonacci(n - 2)"},
+{d:'hard',c:"def quicksort(arr):\n    if len(arr) <= 1:\n        return arr\n    pivot = arr[len(arr) // 2]\n    left = [x for x in arr if x < pivot]\n    mid = [x for x in arr if x == pivot]\n    right = [x for x in arr if x > pivot]\n    return quicksort(left) + mid + quicksort(right)"},
+],
+html:[
+{d:'easy',c:"<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <title>My Page</title>\n</head>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>"},
+{d:'medium',c:"<nav class=\"navbar\">\n  <a href=\"/\" class=\"logo\">Brand</a>\n  <ul class=\"nav-links\">\n    <li><a href=\"/about\">About</a></li>\n    <li><a href=\"/contact\">Contact</a></li>\n  </ul>\n</nav>"},
+{d:'medium',c:"<form action=\"/submit\" method=\"POST\">\n  <label for=\"email\">Email</label>\n  <input type=\"email\" id=\"email\" name=\"email\" required>\n  <button type=\"submit\">Send</button>\n</form>"},
+{d:'hard',c:"<article class=\"card\">\n  <img src=\"thumb.jpg\" alt=\"Thumbnail\" loading=\"lazy\">\n  <h2>Article Title</h2>\n  <p>Short summary of the article goes here.</p>\n  <a href=\"/read-more\" aria-label=\"Read full article\">Read more</a>\n</article>"},
+],
+css:[
+{d:'easy',c:".button {\n  padding: 10px 20px;\n  background: #4f46e5;\n  color: white;\n  border-radius: 8px;\n}"},
+{d:'medium',c:".grid {\n  display: grid;\n  grid-template-columns: repeat(3, 1fr);\n  gap: 16px;\n}\n\n.grid-item {\n  padding: 20px;\n  border-radius: 12px;\n}"},
+{d:'medium',c:"@media (max-width: 768px) {\n  .sidebar {\n    display: none;\n  }\n  .content {\n    width: 100%;\n  }\n}"},
+{d:'hard',c:".card {\n  transition: transform 0.2s ease, box-shadow 0.2s ease;\n}\n\n.card:hover {\n  transform: translateY(-4px);\n  box-shadow: 0 12px 24px rgba(0,0,0,0.15);\n}"},
+],
+java:[
+{d:'easy',c:"public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, World!\");\n  }\n}"},
+{d:'medium',c:"public class Rectangle {\n  private double width;\n  private double height;\n\n  public Rectangle(double width, double height) {\n    this.width = width;\n    this.height = height;\n  }\n\n  public double area() {\n    return width * height;\n  }\n}"},
+{d:'hard',c:"public static int binarySearch(int[] arr, int target) {\n  int low = 0, high = arr.length - 1;\n  while (low <= high) {\n    int mid = low + (high - low) / 2;\n    if (arr[mid] == target) return mid;\n    if (arr[mid] < target) low = mid + 1;\n    else high = mid - 1;\n  }\n  return -1;\n}"},
+],
+cpp:[
+{d:'easy',c:"#include <iostream>\n\nint main() {\n  std::cout << \"Hello, World!\" << std::endl;\n  return 0;\n}"},
+{d:'medium',c:"int factorial(int n) {\n  if (n <= 1) return 1;\n  return n * factorial(n - 1);\n}\n\nint main() {\n  std::cout << factorial(5);\n}"},
+{d:'hard',c:"class Vector2D {\npublic:\n  float x, y;\n  Vector2D(float x, float y) : x(x), y(y) {}\n  Vector2D operator+(const Vector2D& o) const {\n    return Vector2D(x + o.x, y + o.y);\n  }\n};"},
+],
+sql:[
+{d:'easy',c:"SELECT first_name, last_name, email\nFROM customers\nWHERE country = 'India'\nORDER BY last_name ASC;"},
+{d:'medium',c:"SELECT department, COUNT(*) AS total\nFROM employees\nGROUP BY department\nHAVING COUNT(*) > 5\nORDER BY total DESC;"},
+{d:'hard',c:"SELECT o.order_id, c.name, SUM(oi.price * oi.qty) AS total\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN order_items oi ON oi.order_id = o.order_id\nGROUP BY o.order_id, c.name;"},
+],
+typescript:[
+{d:'easy',c:"interface User {\n  id: number;\n  name: string;\n  active: boolean;\n}\n\nfunction printUser(u: User): void {\n  console.log(`${u.name} (${u.id})`);\n}"},
+{d:'medium',c:"type Result<T> = { ok: true; value: T } | { ok: false; error: string };\n\nfunction parseNumber(s: string): Result<number> {\n  const n = Number(s);\n  return isNaN(n) ? { ok: false, error: 'invalid' } : { ok: true, value: n };\n}"},
+],
+};
+
+const QUOTES = [
+{a:"Martin Fowler", c:"Any fool can write code that a computer can understand. Good programmers write code that humans can understand."},
+{a:"Edsger Dijkstra", c:"Simplicity and elegance are unpopular because they require hard work and discipline to achieve."},
+{a:"Kent Beck", c:"Make it work, make it right, make it fast."},
+{a:"Linus Torvalds", c:"Talk is cheap. Show me the code."},
+{a:"John Johnson", c:"First, solve the problem. Then, write the code."},
+{a:"Robert C. Martin", c:"Clean code always looks like it was written by someone who cares."},
+{a:"Antoine de Saint-Exupery", c:"Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."},
+{a:"Rick Osborne", c:"Programs must be written for people to read, and only incidentally for machines to execute."},
+{a:"Bill Gates", c:"Measuring programming progress by lines of code is like measuring aircraft building progress by weight."},
+{a:"Harold Abelson", c:"Programs must be written for people to read, and only incidentally for machines to execute."},
+{a:"Dan Salomon", c:"Code never lies, comments sometimes do."},
+{a:"Edsger Dijkstra", c:"The competent programmer is fully aware of the limited size of their own skull."},
+];
+
+const LANG_FILES = {javascript:'practice.js', python:'practice.py', html:'index.html', css:'styles.css', java:'Main.java', cpp:'main.cpp', sql:'query.sql', typescript:'practice.ts'};
+const LANG_LABELS = {javascript:'JavaScript', python:'Python', html:'HTML', css:'CSS', java:'Java', cpp:'C++', sql:'SQL', typescript:'TypeScript'};
+
+/* =====================================================================
+   2. STATE
+   ===================================================================== */
+const state = {
+  mode:'time', // time | words | quote | programming | custom | adaptive | zen
+  timeLimit:30, wordLimit:50, language:'javascript',
+  focusMode:false, soundOn:true, stopOnError:false, darkMode:true, theme:'violet', fontSize:20,
+  customText:'',
+  target:'', typed:'', started:false, paused:false, finished:false,
+  startTime:0, pausedAt:0, totalPausedMs:0,
+  mistakes:0, rawKeystrokes:0, correctKeystrokes:0,
+  streak:0, bestStreak:0,
+  wpmSamples:[], accSamples:[], sampleTimer:null,
+  keyErrors:{}, adaptiveDifficulty:'medium', adaptiveScoreBuffer:[],
+  timerInterval:null, remainingSec:0,
+};
+
+let history = JSON.parse(localStorage.getItem('tss_history_v1') || '[]');
+let bests = JSON.parse(localStorage.getItem('tss_bests_v1') || '{}');
+let badgesEarned = JSON.parse(localStorage.getItem('tss_badges_v1') || '[]');
+let prefs = JSON.parse(localStorage.getItem('tss_prefs_v1') || 'null');
+if(prefs){ Object.assign(state, {focusMode:prefs.focusMode, soundOn:prefs.soundOn, stopOnError:prefs.stopOnError, darkMode:prefs.darkMode, theme:prefs.theme, fontSize:prefs.fontSize}); }
+
+function savePrefs(){
+  localStorage.setItem('tss_prefs_v1', JSON.stringify({focusMode:state.focusMode, soundOn:state.soundOn, stopOnError:state.stopOnError, darkMode:state.darkMode, theme:state.theme, fontSize:state.fontSize}));
+}
+
+/* =====================================================================
+   3. DOM REFS
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const modeTabs = $('modeTabs'), configBar = $('configBar');
+const codeText = $('codeText'), gutter = $('gutter'), typeArea = $('typeArea');
+const hiddenInput = $('hiddenInput'), clickVeil = $('clickVeil');
+const statWpm=$('statWpm'), statRaw=$('statRaw'), statCpm=$('statCpm'), statAcc=$('statAcc'), statTime=$('statTime'), statMistakes=$('statMistakes');
+const progressFill=$('progressFill'), metaStreak=$('metaStreak'), metaRemaining=$('metaRemaining'), stageFile=$('stageFile');
+const resultsEl = $('results');
+
+/* =====================================================================
+   4. MODE / CONFIG UI
+   ===================================================================== */
+const MODES = [
+  {id:'time', label:'Time', icon:'⏱'},
+  {id:'words', label:'Word Count', icon:'🔤'},
+  {id:'quote', label:'Quote', icon:'❝'},
+  {id:'programming', label:'Programming', icon:'</>'},
+  {id:'custom', label:'Custom Text', icon:'✎'},
+  {id:'adaptive', label:'Adaptive', icon:'⇄'},
+  {id:'zen', label:'Zen', icon:'◎'},
+];
+
+function renderModeTabs(){
+  modeTabs.innerHTML = MODES.map(m=>`<button class="mode-tab ${state.mode===m.id?'active':''}" data-mode="${m.id}" role="tab" aria-selected="${state.mode===m.id}">${m.icon} ${m.label}</button>`).join('');
+  [...modeTabs.children].forEach(btn=>btn.addEventListener('click', ()=>{ state.mode = btn.dataset.mode; renderModeTabs(); renderConfigBar(); loadNewSession(); }));
+}
+
+function renderConfigBar(){
+  let html = '';
+  if(state.mode==='time'){
+    html += `<div class="config-group"><span class="config-label">Duration</span>${[15,30,60,120].map(t=>`<button class="chip ${state.timeLimit===t?'active':''}" data-t="${t}">${t}s</button>`).join('')}</div>`;
+  } else if(state.mode==='words'){
+    html += `<div class="config-group"><span class="config-label">Words</span>${[25,50,100,250].map(w=>`<button class="chip ${state.wordLimit===w?'active':''}" data-w="${w}">${w}</button>`).join('')}</div>`;
+  } else if(state.mode==='adaptive'){
+    html += `<div class="config-group"><span class="config-label">Duration</span>${[30,60,120].map(t=>`<button class="chip ${state.timeLimit===t?'active':''}" data-t="${t}">${t}s</button>`).join('')}</div>`;
+    html += `<div class="config-divider"></div><div class="config-group"><span class="config-label">Difficulty auto-adjusts</span></div>`;
+  }
+  if(state.mode==='programming' || state.mode==='time' || state.mode==='words' || state.mode==='adaptive' || state.mode==='zen'){
+    html += `<div class="config-divider"></div><div class="config-group"><span class="config-label">Language</span>
+      <select class="select-mini" id="langSelect">${Object.keys(LANG_LABELS).map(l=>`<option value="${l}" ${state.language===l?'selected':''}>${LANG_LABELS[l]}</option>`).join('')}</select></div>`;
+  }
+  if(state.mode==='custom'){
+    html += `<div class="config-group" style="flex:1;"><textarea id="customTextArea" placeholder="Paste or type your own text or code here…" style="width:100%;min-height:70px;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:.85rem;padding:10px;resize:vertical;">${state.customText}</textarea></div>
+      <button class="btn primary" id="useCustomBtn" style="align-self:flex-start;">Use this text</button>`;
+  }
+  html += `<div class="config-divider"></div>
+    <div class="toggle-pill ${state.focusMode?'on':''}" id="focusPill"><span class="toggle-dot"></span>Focus mode</div>
+    <div class="toggle-pill ${state.stopOnError?'on':''}" id="stopErrPill"><span class="toggle-dot"></span>Stop on error</div>`;
+  configBar.innerHTML = html;
+
+  configBar.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click', ()=>{ state.timeLimit=+b.dataset.t; renderConfigBar(); loadNewSession(); }));
+  configBar.querySelectorAll('[data-w]').forEach(b=>b.addEventListener('click', ()=>{ state.wordLimit=+b.dataset.w; renderConfigBar(); loadNewSession(); }));
+  const langSel = $('langSelect'); if(langSel) langSel.addEventListener('change', e=>{ state.language=e.target.value; loadNewSession(); });
+  const useCustomBtn = $('useCustomBtn');
+  if(useCustomBtn) useCustomBtn.addEventListener('click', ()=>{ state.customText = $('customTextArea').value.trim() || 'The quick brown fox jumps over the lazy dog.'; loadNewSession(); });
+  const focusPill = $('focusPill'); if(focusPill) focusPill.addEventListener('click', ()=>{ state.focusMode=!state.focusMode; applyFocusMode(); renderConfigBar(); savePrefs(); });
+  const stopErrPill = $('stopErrPill'); if(stopErrPill) stopErrPill.addEventListener('click', ()=>{ state.stopOnError=!state.stopOnError; renderConfigBar(); savePrefs(); });
+}
+
+/* =====================================================================
+   5. TEXT GENERATION
+   ===================================================================== */
+function wordCount(str){ return str.trim().split(/\s+/).filter(Boolean).length; }
+
+function pickSnippet(lang, difficulty){
+  const pool = SNIPPETS[lang] || SNIPPETS.javascript;
+  let filtered = difficulty ? pool.filter(s=>s.d===difficulty) : pool;
+  if(!filtered.length) filtered = pool;
+  return filtered[Math.floor(Math.random()*filtered.length)].c;
+}
+
+function buildStream(lang, minWords, difficulty){
+  let out = '';
+  let guard = 0;
+  while(wordCount(out) < minWords && guard < 40){
+    out += (out?'\n\n':'') + pickSnippet(lang, difficulty);
+    guard++;
+  }
+  return out;
+}
+
+function generateTarget(){
+  switch(state.mode){
+    case 'time': return buildStream(state.language, Math.max(60, state.timeLimit*3), null);
+    case 'words': return trimToWords(buildStream(state.language, state.wordLimit+15, null), state.wordLimit);
+    case 'quote': { const q = QUOTES[Math.floor(Math.random()*QUOTES.length)]; state._quoteAuthor = q.a; return q.c; }
+    case 'programming': return pickSnippet(state.language, null);
+    case 'custom': return state.customText || 'The quick brown fox jumps over the lazy dog. Paste your own text using the Custom Text mode controls above.';
+    case 'adaptive': state.adaptiveDifficulty='medium'; return buildStream(state.language, Math.max(60,state.timeLimit*3), 'medium');
+    case 'zen': return buildStream(state.language, 200, null);
+    default: return pickSnippet('javascript', null);
+  }
+}
+
+function trimToWords(text, n){
+  const words = text.split(/(\s+)/);
+  let count=0, out='';
+  for(const w of words){ out+=w; if(w.trim().length){ count++; if(count>=n) break; } }
+  return out.trimEnd();
+}
+
+/* =====================================================================
+   6. RENDER TYPING AREA
+   ===================================================================== */
+function renderTarget(){
+  const chars = [...state.target];
+  let html = '<span class="line">';
+  let lineNo = 1;
+  const gutterLines = ['1'];
+  for(let i=0;i<chars.length;i++){
+    const ch = chars[i];
+    if(ch === '\n'){
+      html += '<span class="nl">↵</span></span><span class="line">';
+      lineNo++; gutterLines.push(String(lineNo));
+      continue;
+    }
+    const display = ch === ' ' ? '&nbsp;' : (ch === '\t' ? '&nbsp;&nbsp;' : escapeHtml(ch));
+    html += `<span class="ch" data-i="${i}">${display}</span>`;
+  }
+  html += '</span>';
+  codeText.innerHTML = html;
+  gutter.innerHTML = gutterLines.map(n=>n+'<br>').join('');
+  stageFile.textContent = state.mode==='quote' ? 'quote.txt' : state.mode==='custom' ? 'custom.txt' : (LANG_FILES[state.language] || 'practice.txt');
+}
+
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function applyFocusMode(){
+  typeArea.classList.toggle('focus-mode', state.focusMode);
+  updateFocusLines();
+  document.getElementById('focusToggle').classList.toggle('active', state.focusMode);
+}
+
+function updateFocusLines(){
+  if(!state.focusMode) return;
+  const lines = [...codeText.querySelectorAll('.line')];
+  const idx = state.typed.length;
+  let activeLine = 0, count=0;
+  const targetChars = [...state.target];
+  for(let li=0; li<lines.length; li++){
+    const lineLen = lines[li].querySelectorAll('.ch').length + 1;
+    if(idx <= count + lineLen){ activeLine = li; break; }
+    count += lineLen; activeLine = li;
+  }
+  lines.forEach((l,i)=>{
+    l.classList.remove('focus-active','focus-prev','focus-next');
+    if(i===activeLine) l.classList.add('focus-active');
+    else if(i===activeLine-1) l.classList.add('focus-prev');
+    else if(i===activeLine+1) l.classList.add('focus-next');
+  });
+}
+
+/* =====================================================================
+   7. TYPING ENGINE
+   ===================================================================== */
+function loadNewSession(fresh){
+  stopTimers();
+  state.target = generateTarget();
+  state.typed=''; state.started=false; state.paused=false; state.finished=false;
+  state.mistakes=0; state.rawKeystrokes=0; state.correctKeystrokes=0; state.streak=0; state.bestStreak=0;
+  state.wpmSamples=[]; state.accSamples=[]; state.keyErrors={};
+  state.startTime=0; state.totalPausedMs=0;
+  resultsEl.classList.remove('show');
+  renderTarget();
+  applyFocusMode();
+  updateStatsUI(true);
+  clickVeil.classList.add('show');
+  typeArea.classList.remove('paused');
+  $('pauseBtn').textContent='⏸ Pause';
+  const remainLabel = state.mode==='time'||state.mode==='adaptive' ? state.timeLimit+'s' : state.mode==='words' ? state.wordLimit+' words' : '—';
+  metaRemaining.textContent = remainLabel;
+  metaStreak.textContent = 'streak 0';
+  progressFill.style.width='0%';
+}
+
+function beginTyping(){
+  if(state.started || state.finished) return;
+  state.started=true; state.startTime=Date.now();
+  clickVeil.classList.remove('show');
+  if(state.mode==='time' || state.mode==='adaptive'){
+    state.remainingSec = state.timeLimit;
+    state.timerInterval = setInterval(tickTimer, 1000);
+  }
+  state.sampleTimer = setInterval(sampleProgress, 1000);
+}
+
+function tickTimer(){
+  if(state.paused) return;
+  state.remainingSec--;
+  metaRemaining.textContent = state.remainingSec+'s';
+  if(state.remainingSec<=0){ finishSession(); }
+}
+
+function sampleProgress(){
+  if(state.paused || state.finished) return;
+  const elapsedMin = elapsedSeconds()/60;
+  const wpm = elapsedMin>0 ? Math.round((state.correctKeystrokes/5)/elapsedMin) : 0;
+  state.wpmSamples.push(Math.max(0,Math.min(wpm,400)));
+  const totalTyped = state.rawKeystrokes;
+  const acc = totalTyped>0 ? Math.round((state.correctKeystrokes/totalTyped)*100) : 100;
+  state.accSamples.push(acc);
+  if(state.mode==='adaptive') adjustAdaptiveDifficulty(wpm, acc);
+}
+
+function elapsedSeconds(){
+  if(!state.startTime) return 0;
+  const now = state.paused ? state.pausedAt : Date.now();
+  return Math.max(0,(now - state.startTime - state.totalPausedMs)/1000);
+}
+
+function stopTimers(){
+  clearInterval(state.timerInterval); clearInterval(state.sampleTimer);
+  state.timerInterval=null; state.sampleTimer=null;
+}
+
+function togglePause(){
+  if(!state.started || state.finished) return;
+  state.paused = !state.paused;
+  typeArea.classList.toggle('paused', state.paused);
+  if(state.paused){ state.pausedAt = Date.now(); $('pauseBtn').textContent='▶ Resume'; }
+  else{ state.totalPausedMs += Date.now()-state.pausedAt; $('pauseBtn').textContent='⏸ Pause'; hiddenInput.focus(); }
+}
+
+/* -------- key handling -------- */
+hiddenInput.addEventListener('keydown', onKeydown);
+typeArea.addEventListener('click', ()=>{ if(!state.finished){ hiddenInput.focus(); clickVeil.classList.remove('show'); } });
+clickVeil.addEventListener('click', ()=> hiddenInput.focus());
+
+function onKeydown(e){
+  if(e.key==='Tab'){ e.preventDefault(); state._tabHeld=true; return; }
+  if(e.key==='Enter' && state._tabHeld){ e.preventDefault(); restartSession(); return; }
+  if(e.key==='Escape'){ e.preventDefault(); togglePause(); return; }
+  if(state.finished || state.paused) return;
+
+  if(e.key==='Backspace'){
+    e.preventDefault();
+    if(state.typed.length>0){ state.typed = state.typed.slice(0,-1); onTypedChanged(); }
+    return;
+  }
+  if(e.key.length!==1 && e.key!=='Enter' && e.key!=='Tab') return; // ignore control keys
+  e.preventDefault();
+  if(!state.started) beginTyping();
+
+  const idx = state.typed.length;
+  if(idx >= state.target.length){
+    if(state.mode==='zen' || state.mode==='time' || state.mode==='adaptive'){ extendZen(); } else { return; }
+  }
+  const expected = state.target[idx];
+  const inputChar = e.key==='Enter' ? '\n' : e.key;
+
+  if(state.stopOnError && inputChar!==expected && expected!==undefined){
+    flashError();
+    registerKeyError(expected);
+    playSound(false);
+    state.mistakes++; state.rawKeystrokes++; state.streak=0;
+    updateStatsUI(); return;
+  }
+
+  state.rawKeystrokes++;
+  if(inputChar === expected){
+    state.correctKeystrokes++; state.streak++; state.bestStreak=Math.max(state.bestStreak,state.streak);
+    playSound(true);
+  } else {
+    state.mistakes++; state.streak=0; registerKeyError(expected); playSound(false);
+  }
+  state.typed += inputChar;
+  onTypedChanged();
+}
+
+function extendZen(){ state.target += '\n\n' + pickSnippet(state.language, null); renderTarget(); markProgress(); }
+
+function registerKeyError(expected){
+  const key = expected===' ' ? 'space' : expected==='\n' ? 'enter' : expected.toLowerCase();
+  state.keyErrors[key] = (state.keyErrors[key]||0)+1;
+}
+
+function flashError(){ typeArea.style.animation='none'; requestAnimationFrame(()=>{ typeArea.style.animation='shake .25s'; }); }
+
+function onTypedChanged(){
+  markProgress();
+  updateStatsUI();
+  checkCompletion();
+}
+
+function markProgress(){
+  const chEls = codeText.querySelectorAll('.ch');
+  const targetArr = [...state.target];
+  let lastCh=null;
+  let ci=0; // index over ch elements maps 1:1 with non-newline chars only; need mapping via data-i
+  chEls.forEach(el=>{
+    const i = +el.dataset.i;
+    el.classList.remove('correct','incorrect','current');
+    if(i < state.typed.length){
+      el.classList.add(state.typed[i]===targetArr[i] ? 'correct' : 'incorrect');
+    } else if(i === state.typed.length){
+      el.classList.add('current'); lastCh=el;
+    }
+  });
+  if(lastCh) lastCh.scrollIntoView({block:'nearest', behavior:'smooth'});
+  updateFocusLines();
+}
+
+function checkCompletion(){
+  let done=false;
+  if(state.mode==='words'){ if(state.typed.length>=state.target.length) done=true; }
+  else if(state.mode==='quote' || state.mode==='programming' || state.mode==='custom'){ if(state.typed.length>=state.target.length) done=true; }
+  if(done) finishSession();
+}
+
+/* =====================================================================
+   8. ADAPTIVE DIFFICULTY
+   ===================================================================== */
+function adjustAdaptiveDifficulty(wpm, acc){
+  state.adaptiveScoreBuffer.push({wpm,acc});
+  if(state.adaptiveScoreBuffer.length<5) return;
+  const recent = state.adaptiveScoreBuffer.slice(-5);
+  const avgWpm = recent.reduce((s,r)=>s+r.wpm,0)/recent.length;
+  const avgAcc = recent.reduce((s,r)=>s+r.acc,0)/recent.length;
+  let target = 'medium';
+  if(avgWpm>55 && avgAcc>95) target='hard';
+  else if(avgWpm<25 || avgAcc<85) target='easy';
+  if(target!==state.adaptiveDifficulty){
+    state.adaptiveDifficulty = target;
+    const remaining = state.target.length - state.typed.length;
+    if(remaining < 120){ state.target += '\n\n' + pickSnippet(state.language, target); renderTarget(); markProgress(); }
+    showToast('Difficulty adjusted → '+target);
+  }
+}
+
+/* =====================================================================
+   9. LIVE STATS
+   ===================================================================== */
+function updateStatsUI(reset){
+  const el = elapsedSeconds();
+  const min = el/60;
+  const wpm = reset? 0 : (min>0? Math.round((state.correctKeystrokes/5)/min):0);
+  const raw = reset? 0 : (min>0? Math.round((state.rawKeystrokes/5)/min):0);
+  const cpm = reset? 0 : (min>0? Math.round(state.correctKeystrokes/min):0);
+  const acc = reset? 100 : (state.rawKeystrokes>0? Math.round((state.correctKeystrokes/state.rawKeystrokes)*100):100);
+  statWpm.textContent = wpm; statRaw.textContent = raw; statCpm.textContent = cpm;
+  statAcc.textContent = acc+'%'; statTime.textContent = el.toFixed(1)+'s'; statMistakes.textContent = state.mistakes;
+  metaStreak.textContent = 'streak '+state.streak;
+  let pct=0;
+  if(state.mode==='words') pct = Math.min(100, (state.typed.length/state.target.length)*100);
+  else if(state.mode==='time'||state.mode==='adaptive') pct = state.started ? Math.min(100,((state.timeLimit-state.remainingSec)/state.timeLimit)*100) : 0;
+  else if(state.mode==='quote'||state.mode==='programming'||state.mode==='custom') pct = Math.min(100,(state.typed.length/state.target.length)*100);
+  progressFill.style.width = pct+'%';
+}
+setInterval(()=>{ if(state.started && !state.paused && !state.finished) updateStatsUI(); }, 200);
+
+/* =====================================================================
+   10. FINISH SESSION + STATS COMPUTE
+   ===================================================================== */
+function finishSession(){
+  if(state.finished) return;
+  state.finished=true; stopTimers();
+  const elapsed = Math.max(0.4, elapsedSeconds());
+  const min = elapsed/60;
+  const correct = state.correctKeystrokes;
+  const incorrectFinal = [...state.typed].filter((c,i)=>c!==state.target[i]).length;
+  const missed = state.mode==='time'||state.mode==='adaptive' ? Math.max(0, state.target.length-state.typed.length) : 0;
+  const extra = Math.max(0, state.typed.length - state.target.length);
+  const wpm = Math.max(0, Math.round((correct/5)/min));
+  const raw = Math.max(0, Math.round((state.rawKeystrokes/5)/min));
+  const acc = state.rawKeystrokes>0 ? Math.round((correct/state.rawKeystrokes)*100) : 100;
+  const consistency = computeConsistency(state.wpmSamples);
+
+  const session = {
+    id: Date.now(), date: new Date().toISOString(), mode: state.mode,
+    language: state.language, timeLimit: state.timeLimit, wordLimit: state.wordLimit,
+    wpm, raw, acc, consistency, mistakes: state.mistakes, duration: Math.round(elapsed),
+    correct, incorrect: incorrectFinal, extra, missed, bestStreak: state.bestStreak,
+  };
+  const key = bestKey(session);
+  const prevBest = bests[key];
+  const isNewBest = !prevBest || wpm > prevBest.wpm;
+  if(isNewBest) bests[key] = {wpm, acc, date: session.date};
+  localStorage.setItem('tss_bests_v1', JSON.stringify(bests));
+
+  history.unshift(session);
+  history = history.slice(0,200);
+  localStorage.setItem('tss_history_v1', JSON.stringify(history));
+
+  renderResults(session, isNewBest);
+  resultsEl.classList.add('show');
+  playSound(true, true);
+  setTimeout(()=> resultsEl.scrollIntoView({behavior:'smooth', block:'start'}), 150);
+}
+
+function bestKey(s){
+  if(s.mode==='time'||s.mode==='adaptive') return s.mode+'-'+s.timeLimit+'-'+s.language;
+  if(s.mode==='words') return s.mode+'-'+s.wordLimit+'-'+s.language;
+  return s.mode+'-'+s.language;
+}
+
+function computeConsistency(samples){
+  if(samples.length<2) return 100;
+  const mean = samples.reduce((a,b)=>a+b,0)/samples.length;
+  if(mean===0) return 100;
+  const variance = samples.reduce((a,b)=>a+(b-mean)*(b-mean),0)/samples.length;
+  const sd = Math.sqrt(variance);
+  return Math.max(0, Math.min(100, Math.round(100 - (sd/mean)*100)));
+}
+
+/* =====================================================================
+   11. RESULTS RENDERING
+   ===================================================================== */
+function renderResults(s, isNewBest){
+  $('resultModeTag').textContent = s.mode + (s.mode==='time'||s.mode==='adaptive' ? ' · '+s.timeLimit+'s' : s.mode==='words' ? ' · '+s.wordLimit+'w' : ' · '+LANG_LABELS[s.language]);
+  $('resWpm').textContent = s.wpm;
+  $('resRaw').textContent = s.raw;
+  $('resAcc').textContent = s.acc+'%';
+  $('resConsistency').textContent = s.consistency+'%';
+  $('resTime').textContent = s.duration+'s';
+  $('pbFlare').innerHTML = isNewBest ? '<span style="color:var(--accent-2)">★ New personal best</span>' : '';
+  $('charCorrect').textContent = s.correct;
+  $('charIncorrect').textContent = s.incorrect;
+  $('charExtra').textContent = s.extra;
+  $('charMissed').textContent = s.missed;
+
+  drawLineChart('wpmChart', state.wpmSamples, getComputedStyle(document.body).getPropertyValue('--accent'));
+  drawLineChart('accChart', state.accSamples, getComputedStyle(document.body).getPropertyValue('--accent-2'), 100);
+
+  renderKeyboardHeat();
+  renderSummary(s);
+  renderBadges(s);
+  renderHistoryPanel();
+}
+
+function drawLineChart(canvasId, data, color, fixedMax){
+  const canvas = $(canvasId);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = w*dpr; canvas.height = h*dpr; ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  if(!data.length){ return; }
+  const max = fixedMax || Math.max(10, ...data)*1.15;
+  const min = 0;
+  const stepX = data.length>1 ? w/(data.length-1) : w;
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x = i*stepX; const y = h - ((v-min)/(max-min))*h;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle = color.trim() || '#7C6FF0'; ctx.lineWidth=2.4; ctx.lineJoin='round'; ctx.stroke();
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0, (color.trim()||'#7C6FF0')+'55'); grad.addColorStop(1, 'transparent');
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+}
+
+const ROWS = ["1234567890", "qwertyuiop", "asdfghjkl", "zxcvbnm"];
+function renderKeyboardHeat(){
+  const max = Math.max(1, ...Object.values(state.keyErrors));
+  let html='';
+  ROWS.forEach(row=>{
+    html += '<div class="kb-row">';
+    [...row].forEach(k=>{
+      const errs = state.keyErrors[k]||0;
+      const intensity = errs/max;
+      const bg = errs>0 ? `rgba(255,107,122,${0.15+intensity*0.55})` : '';
+      html += `<div class="kb-key" style="${bg?`background:${bg};border-color:${bg};color:#fff;`:''}">${k}</div>`;
+    });
+    html += '</div>';
+  });
+  const spaceErrs = state.keyErrors['space']||0;
+  const spaceBg = spaceErrs>0 ? `rgba(255,107,122,${0.15+(spaceErrs/max)*0.55})` : '';
+  html += `<div class="kb-row"><div class="kb-key" style="width:140px;${spaceBg?`background:${spaceBg};color:#fff;`:''}">space</div></div>`;
+  $('keyboardHeat').innerHTML = html;
+}
+
+function renderSummary(s){
+  const topErrors = Object.entries(state.keyErrors).sort((a,b)=>b[1]-a[1]).slice(0,4).map(e=>e[0]);
+  const strengths=[], weaknesses=[], tips=[];
+  if(s.acc>=97) strengths.push('excellent accuracy');
+  if(s.wpm>=70) strengths.push('strong raw speed');
+  if(s.consistency>=85) strengths.push('very consistent rhythm');
+  if(s.acc<90){ weaknesses.push('accuracy dipped under pressure'); tips.push('slow down slightly and prioritize correct keystrokes over speed'); }
+  if(s.consistency<70){ weaknesses.push('uneven pacing across the session'); tips.push('try Zen mode to build a steadier rhythm without time pressure'); }
+  if(topErrors.length){ weaknesses.push('frequent mistakes on '+topErrors.map(k=>`"${k}"`).join(', ')); tips.push('run a few short Word Count sessions focused on symbol-heavy '+LANG_LABELS[s.language]+' snippets'); }
+  if(!strengths.length) strengths.push('steady completion of the passage');
+  if(!tips.length) tips.push('push your duration up a notch next time to keep progressing');
+
+  const pct = estimatePercentile(s.wpm);
+  $('summaryText').innerHTML = `You typed at <b>${s.wpm} WPM</b> with <b>${s.acc}% accuracy</b> and <b>${s.consistency}% consistency</b>, roughly the <b>${pct}th percentile</b> for typists overall.<br><br>
+  <b>Strengths:</b> ${strengths.join(', ')}.<br>
+  <b>Watch for:</b> ${weaknesses.length? weaknesses.join('; ') : 'nothing major — solid session'}.<br>
+  <b>Try next:</b> ${tips[0]}`;
+}
+
+function estimatePercentile(wpm){
+  // rough approximation using a typical typing-speed distribution (mean ~40, sd ~15)
+  const mean=40, sd=15;
+  const z = (wpm-mean)/sd;
+  const p = 0.5*(1+erf(z/Math.SQRT2));
+  return Math.min(99, Math.max(1, Math.round(p*100)));
+}
+function erf(x){
+  const sign = x<0?-1:1; x=Math.abs(x);
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const t=1/(1+p*x);
+  const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return sign*y;
+}
+
+const BADGE_DEFS = [
+  {id:'century', label:'🏆 Century Club', test:s=>s.wpm>=100},
+  {id:'speed70', label:'⚡ Speed Demon', test:s=>s.wpm>=70},
+  {id:'perfect', label:'🎯 Perfectionist', test:s=>s.acc===100},
+  {id:'consistent', label:'📈 Metronome', test:s=>s.consistency>=90},
+  {id:'streak50', label:'🔥 Streak Master', test:s=>s.bestStreak>=50},
+  {id:'marathon', label:'🏃 Marathon Typer', test:s=>s.mode==='words' && s.wordLimit>=250},
+  {id:'firstrun', label:'🌱 First Session', test:(s,h)=>h.length===1},
+];
+function renderBadges(s){
+  const newly=[];
+  BADGE_DEFS.forEach(b=>{
+    if(b.test(s, history) && !badgesEarned.includes(b.id)){ badgesEarned.push(b.id); newly.push(b.id); }
+  });
+  localStorage.setItem('tss_badges_v1', JSON.stringify(badgesEarned));
+  $('badgesRow').innerHTML = BADGE_DEFS.filter(b=>badgesEarned.includes(b.id)).map(b=>`<span class="badge ${newly.includes(b.id)?'new':''}">${b.label}</span>`).join('') || '<span style="color:var(--text-faint);font-size:.8rem;">Complete sessions to unlock badges</span>';
+}
+
+/* =====================================================================
+   12. HISTORY
+   ===================================================================== */
+function computeDayStreak(){
+  const days = [...new Set(history.map(h=>h.date.slice(0,10)))].sort().reverse();
+  if(!days.length) return 0;
+  let streak=0; let cursor=new Date();
+  for(let i=0;i<days.length;i++){
+    const d = new Date(days[i]);
+    const diff = Math.round((cursor-d)/86400000);
+    if(diff<=1){ streak++; cursor=d; } else break;
+  }
+  return streak;
+}
+
+function renderHistoryPanel(){
+  const streak = computeDayStreak();
+  $('streakDaysTag').textContent = streak+' day streak';
+  const rows = history.slice(0,10);
+  if(!rows.length){ $('historyContent').innerHTML = '<div class="empty-state">No sessions yet — finish a test to see it here.</div>'; return; }
+  $('historyContent').innerHTML = `<table class="history-table"><thead><tr><th>Date</th><th>Mode</th><th>Lang</th><th>WPM</th><th>Acc</th><th>Consistency</th></tr></thead><tbody>
+    ${rows.map(h=>{
+      const key = bestKey(h); const isPB = bests[key] && bests[key].wpm===h.wpm && bests[key].date===h.date;
+      return `<tr><td>${new Date(h.date).toLocaleDateString()} ${new Date(h.date).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td><td>${h.mode}</td><td>${LANG_LABELS[h.language]||'—'}</td><td class="${isPB?'pb':''}">${h.wpm}${isPB?' ★':''}</td><td>${h.acc}%</td><td>${h.consistency}%</td></tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+
+function renderHistoryModal(){
+  const rows = history.slice(0,50);
+  $('historyModalContent').innerHTML = rows.length ? `<table class="history-table"><thead><tr><th>Date</th><th>Mode</th><th>Lang</th><th>WPM</th><th>Raw</th><th>Acc</th><th>Mistakes</th></tr></thead><tbody>
+  ${rows.map(h=>`<tr><td>${new Date(h.date).toLocaleDateString()}</td><td>${h.mode}</td><td>${LANG_LABELS[h.language]||'—'}</td><td>${h.wpm}</td><td>${h.raw}</td><td>${h.acc}%</td><td>${h.mistakes}</td></tr>`).join('')}
+  </tbody></table>` : '<div class="empty-state">No sessions recorded yet.</div>';
+}
+
+/* =====================================================================
+   13. SOUND
+   ===================================================================== */
+let audioCtx=null;
+function playSound(correct, chime){
+  if(!state.soundOn) return;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value = chime ? 880 : correct ? 620 : 180;
+    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (chime?0.4:0.06));
+    osc.start(); osc.stop(audioCtx.currentTime + (chime?0.4:0.06));
+  }catch(e){}
+}
+
+/* =====================================================================
+   14. TOAST
+   ===================================================================== */
+let toastTimer=null;
+function showToast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* =====================================================================
+   15. CONTROLS WIRING
+   ===================================================================== */
+function restartSession(){ loadNewSession(); showToast('Restarted'); }
+$('restartBtn').addEventListener('click', restartSession);
+$('tryAgainBtn').addEventListener('click', ()=>{ loadNewSession(); window.scrollTo({top:0,behavior:'smooth'}); });
+$('nextChallengeBtn').addEventListener('click', ()=>{ if(state.mode==='programming'||state.mode==='quote') loadNewSession(); else { state.timeLimit = state.timeLimit; loadNewSession(); } window.scrollTo({top:0,behavior:'smooth'}); });
+$('newTextBtn').addEventListener('click', ()=> loadNewSession());
+$('pauseBtn').addEventListener('click', togglePause);
+
+document.addEventListener('keyup', e=>{ if(e.key==='Tab') state._tabHeld=false; });
+document.addEventListener('keydown', e=>{
+  if(document.activeElement===hiddenInput || $('customTextArea')===document.activeElement) return;
+  if(e.key==='f' || e.key==='F'){ if(!isTypingFocused()){ state.focusMode=!state.focusMode; applyFocusMode(); renderConfigBar(); savePrefs(); } }
+  if(e.key==='s' || e.key==='S'){ if(!isTypingFocused()){ toggleSound(); } }
+  if(e.key==='?'){ openModal('settingsModal'); }
+  if(e.key==='h' || e.key==='H'){ if(!isTypingFocused()){ renderHistoryModal(); openModal('historyModal'); } }
+  if(e.ctrlKey && (e.key==='n'||e.key==='N')){ e.preventDefault(); loadNewSession(); }
+});
+function isTypingFocused(){ return false; }
+
+/* settings modal */
+function openModal(id){ $(id).classList.add('show'); }
+function closeModal(id){ $(id).classList.remove('show'); }
+$('settingsBtn').addEventListener('click', ()=>openModal('settingsModal'));
+$('closeSettings').addEventListener('click', ()=>closeModal('settingsModal'));
+$('historyBtn').addEventListener('click', ()=>{ renderHistoryModal(); openModal('historyModal'); });
+$('closeHistory').addEventListener('click', ()=>closeModal('historyModal'));
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('show'); }));
+$('clearHistoryBtn').addEventListener('click', ()=>{
+  if(confirm('Clear all locally stored session history? This cannot be undone.')){
+    history=[]; bests={}; badgesEarned=[];
+    localStorage.removeItem('tss_history_v1'); localStorage.removeItem('tss_bests_v1'); localStorage.removeItem('tss_badges_v1');
+    renderHistoryModal(); renderHistoryPanel(); showToast('History cleared');
+  }
+});
+
+$('darkSwitch').addEventListener('click', ()=>{ state.darkMode=!state.darkMode; applyTheme(); savePrefs(); });
+document.querySelectorAll('.theme-dot').forEach(d=>d.addEventListener('click', ()=>{ state.theme=d.dataset.theme; applyTheme(); savePrefs(); document.querySelectorAll('.theme-dot').forEach(x=>x.classList.remove('active')); d.classList.add('active'); }));
+$('fontUp').addEventListener('click', ()=>{ state.fontSize=Math.min(30,state.fontSize+2); applyFont(); savePrefs(); });
+$('fontDown').addEventListener('click', ()=>{ state.fontSize=Math.max(14,state.fontSize-2); applyFont(); savePrefs(); });
+$('soundSwitch').addEventListener('click', toggleSound);
+$('focusSwitch').addEventListener('click', ()=>{ state.focusMode=!state.focusMode; applyFocusMode(); syncSwitches(); renderConfigBar(); savePrefs(); });
+$('stopErrorSwitch').addEventListener('click', ()=>{ state.stopOnError=!state.stopOnError; syncSwitches(); renderConfigBar(); savePrefs(); });
+$('soundToggle').addEventListener('click', toggleSound);
+$('focusToggle').addEventListener('click', ()=>{ state.focusMode=!state.focusMode; applyFocusMode(); syncSwitches(); renderConfigBar(); savePrefs(); });
+
+function toggleSound(){ state.soundOn=!state.soundOn; syncSwitches(); savePrefs(); $('soundToggle').classList.toggle('active', state.soundOn); $('soundToggle').textContent = state.soundOn?'🔊':'🔇'; }
+
+function applyTheme(){
+  document.body.dataset.mode = state.darkMode ? 'dark':'light';
+  document.body.dataset.theme = state.theme;
+  $('darkSwitch').classList.toggle('on', state.darkMode);
+}
+function applyFont(){ document.documentElement.style.setProperty('--code-size', state.fontSize+'px'); $('fontSizeLabel').textContent = state.fontSize+'px'; }
+function syncSwitches(){
+  $('soundSwitch').classList.toggle('on', state.soundOn);
+  $('focusSwitch').classList.toggle('on', state.focusMode);
+  $('stopErrorSwitch').classList.toggle('on', state.stopOnError);
+  $('focusToggle').classList.toggle('active', state.focusMode);
+  $('soundToggle').classList.toggle('active', state.soundOn);
+  $('soundToggle').textContent = state.soundOn?'🔊':'🔇';
+}
+
+/* shake keyframe injected once */
+const styleTag = document.createElement('style');
+styleTag.textContent = '@keyframes shake{10%,90%{transform:translateX(-1px);}20%,80%{transform:translateX(2px);}30%,50%,70%{transform:translateX(-4px);}40%,60%{transform:translateX(4px);}}';
+document.head.appendChild(styleTag);
+
+/* =====================================================================
+   16. INIT
+   ===================================================================== */
+function init(){
+  applyTheme(); applyFont(); syncSwitches();
+  document.querySelectorAll('.theme-dot').forEach(d=>{ if(d.dataset.theme===state.theme) d.classList.add('active'); else d.classList.remove('active'); });
+  renderModeTabs();
+  renderConfigBar();
+  loadNewSession();
+  window.addEventListener('resize', ()=>{ if(resultsEl.classList.contains('show')){ drawLineChart('wpmChart', state.wpmSamples, getComputedStyle(document.body).getPropertyValue('--accent')); drawLineChart('accChart', state.accSamples, getComputedStyle(document.body).getPropertyValue('--accent-2'),100); } });
+}
+init();
+
+})();
+</script>
+</body>
+</html>
